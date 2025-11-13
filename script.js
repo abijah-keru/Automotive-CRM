@@ -1227,6 +1227,7 @@ function initializeApp() {
     setupNavigation();
     setupMobileMenu();
     setupSidebarToggle();
+    setupPipelineSwipe();
     // Note: setupUserDropdown() is called later after users are loaded from localStorage
     
     // Ensure new leads exist (adds them if missing)
@@ -1307,6 +1308,9 @@ function initializeApp() {
     
     // Setup drag and drop for pipeline
     setupDragAndDrop();
+    
+    // Setup swipe functionality for test drives and inventory tables
+    setupTableSwipe();
     
     // Update nav previews
     updateAllNavPreviews();
@@ -1389,16 +1393,23 @@ function setupSidebarToggle() {
         const toggleSidebar = function(e) {
             if (e) {
                 e.stopPropagation();
+                e.preventDefault();
             }
             
             const isMobile = window.innerWidth <= 767;
             
             if (isMobile) {
                 // On mobile, toggle open/close (slide in/out)
-                sidebar.classList.toggle('open');
+                const isOpen = sidebar.classList.toggle('open');
                 const overlay = document.getElementById('sidebar-overlay');
                 if (overlay) {
                     overlay.classList.toggle('active');
+                }
+                // Prevent body scroll when sidebar is open on mobile
+                if (isOpen) {
+                    body.style.overflow = 'hidden';
+                } else {
+                    body.style.overflow = '';
                 }
             } else {
                 // On desktop, toggle collapsed/expanded
@@ -1416,10 +1427,16 @@ function setupSidebarToggle() {
             }
         };
         
+        // Add click handler to sidebar toggle
         sidebarToggle.addEventListener('click', toggleSidebar);
         
-        // Also allow clicking on the sidebar edge area (but not on nav items)
+        // Also allow clicking on the sidebar edge area (but not on nav items) - only on desktop
         sidebar.addEventListener('click', function(e) {
+            // Only on desktop, not mobile
+            if (window.innerWidth <= 767) {
+                return;
+            }
+            
             // Only trigger if clicking directly on the handle or edge, not on nav items
             if (e.target === sidebarToggle || e.target.closest('.sidebar-resize-handle')) {
                 return; // Already handled by handle click
@@ -1449,6 +1466,7 @@ function setupSidebarToggle() {
                     // On mobile, ensure sidebar is closed by default
                     sidebar.classList.remove('collapsed', 'open');
                     body.classList.remove('sidebar-collapsed');
+                    body.style.overflow = '';
                     const overlay = document.getElementById('sidebar-overlay');
                     if (overlay) {
                         overlay.classList.remove('active');
@@ -1466,6 +1484,87 @@ function setupSidebarToggle() {
                 }
             }, 100);
         });
+    }
+}
+
+// Pipeline Swipe Functionality for Mobile
+function setupPipelineSwipe() {
+    const pipelineBoard = document.querySelector('.pipeline-board');
+    if (!pipelineBoard) return;
+    
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let isDragging = false;
+    
+    // Prevent default drag behavior on mobile
+    pipelineBoard.addEventListener('touchstart', function(e) {
+        touchStartX = e.touches[0].clientX;
+        isDragging = false;
+    }, { passive: true });
+    
+    pipelineBoard.addEventListener('touchmove', function(e) {
+        if (Math.abs(e.touches[0].clientX - touchStartX) > 10) {
+            isDragging = true;
+        }
+    }, { passive: true });
+    
+    pipelineBoard.addEventListener('touchend', function(e) {
+        if (!isDragging) return;
+        touchEndX = e.changedTouches[0].clientX;
+        const swipeDistance = touchStartX - touchEndX;
+        const minSwipeDistance = 50;
+        
+        if (Math.abs(swipeDistance) > minSwipeDistance) {
+            const scrollAmount = pipelineBoard.offsetWidth * 0.8; // Scroll 80% of viewport width
+            if (swipeDistance > 0) {
+                // Swipe left - scroll right
+                pipelineBoard.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            } else {
+                // Swipe right - scroll left
+                pipelineBoard.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            }
+        }
+    }, { passive: true });
+    
+    // Also handle mouse drag for testing on desktop
+    let mouseDown = false;
+    let mouseStartX = 0;
+    let scrollLeft = 0;
+    
+    pipelineBoard.addEventListener('mousedown', function(e) {
+        if (window.innerWidth <= 767) {
+            mouseDown = true;
+            mouseStartX = e.pageX - pipelineBoard.offsetLeft;
+            scrollLeft = pipelineBoard.scrollLeft;
+            pipelineBoard.style.cursor = 'grabbing';
+        }
+    });
+    
+    pipelineBoard.addEventListener('mouseleave', function() {
+        mouseDown = false;
+        if (window.innerWidth <= 767) {
+            pipelineBoard.style.cursor = 'grab';
+        }
+    });
+    
+    pipelineBoard.addEventListener('mouseup', function() {
+        mouseDown = false;
+        if (window.innerWidth <= 767) {
+            pipelineBoard.style.cursor = 'grab';
+        }
+    });
+    
+    pipelineBoard.addEventListener('mousemove', function(e) {
+        if (!mouseDown || window.innerWidth > 767) return;
+        e.preventDefault();
+        const x = e.pageX - pipelineBoard.offsetLeft;
+        const walk = (x - mouseStartX) * 2;
+        pipelineBoard.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Set cursor style on mobile
+    if (window.innerWidth <= 767) {
+        pipelineBoard.style.cursor = 'grab';
     }
 }
 
@@ -1974,7 +2073,7 @@ function updateNavPreview(navItem) {
     switch(section) {
         case 'dashboard':
             const totalLeads = filteredLeads.length;
-            const activeLeads = filteredLeads.filter(l => ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation'].includes(l.status)).length;
+            const activeLeads = filteredLeads.filter(l => ['New', 'Contacted', 'Proposal', 'Negotiation'].includes(l.status)).length;
             const wonLeads = filteredLeads.filter(l => l.status === 'Won').length;
             const revenue = filteredLeads.filter(l => l.status === 'Won').reduce((sum, l) => sum + (l.value || 0), 0);
             const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
@@ -1989,12 +2088,10 @@ function updateNavPreview(navItem) {
         case 'leads':
             const newLeads = filteredLeads.filter(l => l.status === 'New').length;
             const contactedLeads = filteredLeads.filter(l => l.status === 'Contacted').length;
-            const qualifiedLeads = filteredLeads.filter(l => l.status === 'Qualified').length;
             content = `
                 <div class="nav-preview-item"><strong>Total Leads:</strong> ${filteredLeads.length}</div>
                 <div class="nav-preview-item"><strong>New:</strong> ${newLeads}</div>
                 <div class="nav-preview-item"><strong>Contacted:</strong> ${contactedLeads}</div>
-                <div class="nav-preview-item"><strong>Qualified:</strong> ${qualifiedLeads}</div>
                 <div class="nav-preview-item"><strong>View all leads,</strong> edit details, and manage your sales pipeline</div>
             `;
             break;
@@ -2019,15 +2116,14 @@ function updateNavPreview(navItem) {
             break;
             
         case 'pipeline':
-            const stages = ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
+            const stages = ['New', 'Contacted', 'Proposal', 'Negotiation', 'Won', 'Lost'];
             const stageCounts = stages.map(stage => filteredLeads.filter(l => l.status === stage).length);
             content = `
                 <div class="nav-preview-item"><strong>New:</strong> ${stageCounts[0]}</div>
                 <div class="nav-preview-item"><strong>Contacted:</strong> ${stageCounts[1]}</div>
-                <div class="nav-preview-item"><strong>Qualified:</strong> ${stageCounts[2]}</div>
-                <div class="nav-preview-item"><strong>Proposal:</strong> ${stageCounts[3]}</div>
-                <div class="nav-preview-item"><strong>Negotiation:</strong> ${stageCounts[4]}</div>
-                <div class="nav-preview-item"><strong>Won:</strong> ${stageCounts[5]} | <strong>Lost:</strong> ${stageCounts[6]}</div>
+                <div class="nav-preview-item"><strong>Proposal:</strong> ${stageCounts[2]}</div>
+                <div class="nav-preview-item"><strong>Negotiation:</strong> ${stageCounts[3]}</div>
+                <div class="nav-preview-item"><strong>Won:</strong> ${stageCounts[4]} | <strong>Lost:</strong> ${stageCounts[5]}</div>
                 <div class="nav-preview-item"><strong>Drag and drop</strong> cards to move leads through stages</div>
             `;
             break;
@@ -2080,6 +2176,19 @@ function showSettingsTab(tabName) {
 }
 
 function showSection(sectionName) {
+    // Re-initialize pipeline swipe when pipeline section is shown
+    if (sectionName === 'pipeline') {
+        setTimeout(() => {
+            setupPipelineSwipe();
+        }, 100);
+    }
+    
+    // Re-initialize table swipe when test drives or inventory sections are shown
+    if (sectionName === 'testdrives' || sectionName === 'inventory') {
+        setTimeout(() => {
+            setupTableSwipe();
+        }, 100);
+    }
     // At the VERY START: Get the current user from the users array using currentUserId
     const currentUser = users.find(u => u.id === currentUserId);
     if (!currentUser) return;
@@ -2271,6 +2380,9 @@ function setupEventListeners() {
             closeAllModals();
         }
     });
+    
+    // Setup date inputs to show calendar immediately on click/focus
+    setupDateInputs();
 }
 
 
@@ -2370,7 +2482,6 @@ function loadPipelineStages() {
     const stages = [
         { name: 'New', color: '#118ab2' },
         { name: 'Contacted', color: '#2c7da0' },
-        { name: 'Qualified', color: '#06d6a0' },
         { name: 'Proposal', color: '#d97706' },
         { name: 'Negotiation', color: '#014f86' },
         { name: 'Won', color: '#06d6a0' },
@@ -2864,8 +2975,6 @@ function openLeadModal(leadId = null) {
             document.getElementById('lead-name').value = lead.name;
             document.getElementById('lead-email').value = lead.email;
             document.getElementById('lead-phone').value = lead.phone;
-            document.getElementById('lead-company').value = lead.company || '';
-            document.getElementById('lead-job-title').value = lead.jobTitle || '';
             document.getElementById('lead-source').value = lead.source;
             document.getElementById('lead-status').value = lead.status;
             document.getElementById('lead-assigned').value = lead.assignedTo || '';
@@ -2896,8 +3005,6 @@ function saveLead() {
     name = removeInitialFromName(name);
     const email = document.getElementById('lead-email').value;
     const phone = document.getElementById('lead-phone').value;
-    const company = document.getElementById('lead-company').value;
-    const jobTitle = document.getElementById('lead-job-title').value;
     const source = document.getElementById('lead-source').value;
     const status = document.getElementById('lead-status').value;
     const assignedTo = document.getElementById('lead-assigned').value;
@@ -2932,8 +3039,6 @@ function saveLead() {
                 name,
                 email,
                 phone,
-                company,
-                jobTitle,
                 source,
                 status,
                 assignedTo: assignedTo ? parseInt(assignedTo) : null,
@@ -2954,8 +3059,6 @@ function saveLead() {
             name,
             email,
             phone,
-            company,
-            jobTitle,
             source,
             status,
             assignedTo: assignedTo ? parseInt(assignedTo) : null,
@@ -3060,7 +3163,6 @@ function viewLeadDetails(leadId) {
                     <select id="detail-status">
                         <option value="New" ${lead.status === 'New' ? 'selected' : ''}>New</option>
                         <option value="Contacted" ${lead.status === 'Contacted' ? 'selected' : ''}>Contacted</option>
-                        <option value="Qualified" ${lead.status === 'Qualified' ? 'selected' : ''}>Qualified</option>
                         <option value="Proposal" ${lead.status === 'Proposal' ? 'selected' : ''}>Proposal</option>
                         <option value="Negotiation" ${lead.status === 'Negotiation' ? 'selected' : ''}>Negotiation</option>
                         <option value="Won" ${lead.status === 'Won' ? 'selected' : ''}>Won</option>
@@ -3294,6 +3396,11 @@ function viewLeadDetails(leadId) {
     panel.dataset.leadId = lead.id;
     panel.classList.add('active');
     
+    // On mobile, prevent body scroll when panel is open
+    if (window.innerWidth <= 767) {
+        document.body.style.overflow = 'hidden';
+    }
+    
     // Populate reassign dropdown menu with sales reps only
     const reassignOptions = document.getElementById('reassign-dropdown-options');
     if (reassignOptions) {
@@ -3321,6 +3428,10 @@ function viewLeadDetails(leadId) {
 
 function closeLeadDetail() {
     document.getElementById('lead-detail-panel').classList.remove('active');
+    // Restore body scroll on mobile
+    if (window.innerWidth <= 767) {
+        document.body.style.overflow = '';
+    }
     // Close reassign dropdown if open
     const dropdown = document.getElementById('reassign-dropdown-menu');
     const button = document.getElementById('reassign-btn');
@@ -3630,6 +3741,8 @@ function displayTasks(tasksToShow) {
                 ${group.tasks.map(task => {
                     const lead = leads.find(l => l.id === task.leadId);
                     const assignedUser = users.find(u => u.id === task.assignedTo);
+                    // Only show assigned user indicator if task is assigned to someone other than current user
+                    const showAssignedIndicator = assignedUser && task.assignedTo !== currentUserId;
                     return `
                         <div class="task-item ${task.displayStatus === 'Completed' ? 'completed' : ''}">
                             <input type="checkbox" ${task.displayStatus === 'Completed' ? 'checked' : ''} 
@@ -3641,7 +3754,7 @@ function displayTasks(tasksToShow) {
                                 </div>
                             </div>
                             <span class="priority-badge priority-${task.priority.toLowerCase()}">${task.priority}</span>
-                            ${assignedUser ? `<div class="user-avatar" style="width: 24px; height: 24px; font-size: 10px;">${assignedUser.name.charAt(0)}</div>` : ''}
+                            ${showAssignedIndicator ? `<div class="user-avatar" style="width: 24px; height: 24px; font-size: 10px;">${assignedUser.name.charAt(0)}</div>` : ''}
                             <button class="btn btn-sm btn-secondary" onclick="editTask(${task.id})">Edit</button>
                         </div>
                     `;
@@ -3931,7 +4044,7 @@ function saveCommunication() {
 function updatePipeline() {
     // Use filtered leads based on user role
     const filteredLeads = getFilteredLeads();
-    const stages = ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
+    const stages = ['New', 'Contacted', 'Proposal', 'Negotiation', 'Won', 'Lost'];
     
     stages.forEach(stage => {
         const stageLeads = filteredLeads.filter(l => l.status === stage);
@@ -3949,7 +4062,8 @@ function updatePipeline() {
             stageLeads.forEach(lead => {
                 const card = document.createElement('div');
                 card.className = 'lead-card';
-                card.setAttribute('draggable', 'true');
+                // Only enable drag on desktop
+                card.setAttribute('draggable', window.innerWidth > 767 ? 'true' : 'false');
                 card.dataset.leadId = lead.id;
                 
                 // Get assigned user name and avatar
@@ -3962,8 +4076,12 @@ function updatePipeline() {
                 
                 card.innerHTML = `
                     <h4>${lead.name}</h4>
-                    <p style="font-size: 12px; color: #8d99ae; margin: 4px 0;">${lead.email}</p>
-                    <p style="font-size: 11px; color: #8d99ae; margin: 4px 0;">${formatSource(lead.source)}</p>
+                    <p style="font-size: 12px; color: #8d99ae; margin: 4px 0; display: flex; align-items: center; gap: 4px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        ${lead.phone}
+                    </p>
                     ${lead.value ? `<p class="lead-value" style="font-size: 14px; font-weight: 600; color: #012a4a; margin-top: 8px;">${formatCurrency(lead.value)}</p>` : ''}
                     <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #edf2f4; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #8d99ae;">
                         <span style="display: flex; align-items: center; gap: 6px;">
@@ -3982,13 +4100,52 @@ function updatePipeline() {
                     </div>
                 `;
                 
-                // Add direct drag event handlers to each card
+                // Add click handler for mobile to open detail view
+                let touchStartTime = 0;
+                let touchStartY = 0;
+                
+                card.addEventListener('touchstart', function(e) {
+                    if (window.innerWidth <= 767) {
+                        touchStartTime = Date.now();
+                        touchStartY = e.touches[0].clientY;
+                    }
+                }, { passive: true });
+                
+                card.addEventListener('touchend', function(e) {
+                    if (window.innerWidth <= 767) {
+                        const touchEndTime = Date.now();
+                        const touchDuration = touchEndTime - touchStartTime;
+                        const touchEndY = e.changedTouches[0].clientY;
+                        const verticalSwipe = Math.abs(touchEndY - touchStartY);
+                        
+                        // Only open if it's a quick tap (not a drag) and not a vertical swipe
+                        if (touchDuration < 300 && verticalSwipe < 10 && !this.classList.contains('dragging')) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            viewLeadDetails(lead.id);
+                        }
+                    }
+                });
+                
+                card.addEventListener('click', function(e) {
+                    // Only handle click on mobile, and don't interfere with drag
+                    if (window.innerWidth <= 767 && !this.classList.contains('dragging')) {
+                        e.stopPropagation();
+                        viewLeadDetails(lead.id);
+                    }
+                });
+                
+                // Add direct drag event handlers to each card (only on desktop)
                 card.addEventListener('dragstart', function(e) {
-                    this.classList.add('dragging');
-                    e.dataTransfer.effectAllowed = 'move';
-                    const leadId = this.dataset.leadId || this.getAttribute('data-lead-id');
-                    e.dataTransfer.setData('text/plain', String(leadId));
-                    e.dataTransfer.setData('application/json', JSON.stringify({ leadId: leadId }));
+                    if (window.innerWidth > 767) {
+                        this.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        const leadId = this.dataset.leadId || this.getAttribute('data-lead-id');
+                        e.dataTransfer.setData('text/plain', String(leadId));
+                        e.dataTransfer.setData('application/json', JSON.stringify({ leadId: leadId }));
+                    } else {
+                        e.preventDefault(); // Prevent drag on mobile
+                    }
                 }, false);
                 
                 card.addEventListener('dragend', function(e) {
@@ -4163,7 +4320,7 @@ function updateFunnelChart() {
     
     // Admin Reports use ALL leads (not filtered)
     const allLeads = leads;
-    const stages = ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Won'];
+    const stages = ['New', 'Contacted', 'Proposal', 'Negotiation', 'Won'];
     const stageCounts = stages.map(stage => allLeads.filter(l => l.status === stage).length);
     const maxCount = Math.max(...stageCounts, 1);
     
@@ -4261,7 +4418,7 @@ function updateSalesActivity() {
     
     salesUsers.forEach(user => {
         const userLeads = leads.filter(l => l.assignedTo === user.id);
-        const contacted = userLeads.filter(l => ['Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Won'].includes(l.status)).length;
+        const contacted = userLeads.filter(l => ['Contacted', 'Proposal', 'Negotiation', 'Won'].includes(l.status)).length;
         const converted = userLeads.filter(l => l.status === 'Won').length;
         const revenue = userLeads.filter(l => l.status === 'Won').reduce((sum, l) => sum + (l.value || 0), 0);
         
@@ -4319,7 +4476,7 @@ function updateDashboard() {
     
     if (metricValues.length > 1) {
         const activeLeads = allLeads.filter(l => 
-            ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation'].includes(l.status)
+            ['New', 'Contacted', 'Proposal', 'Negotiation'].includes(l.status)
         ).length;
         metricValues[1].textContent = activeLeads;
         // Force immediate reflow after second update
@@ -4886,23 +5043,84 @@ function updateSalesRepPipelineChart() {
     if (!container) return;
     
     const filteredLeads = getFilteredLeads();
-    const stages = ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
+    const stages = ['New', 'Contacted', 'Proposal', 'Negotiation', 'Won', 'Lost'];
     const stageCounts = stages.map(stage => filteredLeads.filter(l => l.status === stage).length);
     const maxCount = Math.max(...stageCounts, 1);
+    const isMobile = window.innerWidth <= 767;
     const chartHeight = 150;
+    const fontSize = 11;
+    const labelFontSize = 10;
+    const yAxisWidth = isMobile ? '30px' : '40px';
+    const gap = isMobile ? '4px' : '8px'; // Reduced gap on mobile
     
     container.innerHTML = '';
     container.style.display = 'flex';
+    container.style.flexDirection = 'row';
     container.style.alignItems = 'flex-end';
-    container.style.justifyContent = 'space-around';
-    container.style.gap = '8px';
+    container.style.gap = gap;
     container.style.height = chartHeight + 50 + 'px';
-    container.style.padding = '16px 0';
+    container.style.padding = isMobile ? '16px 4px' : '16px 0'; // Reduced padding on mobile
+    
+    // Create Y-axis with numbers on the left
+    const yAxis = document.createElement('div');
+    yAxis.style.display = 'flex';
+    yAxis.style.flexDirection = 'column-reverse';
+    yAxis.style.justifyContent = 'space-between';
+    yAxis.style.width = yAxisWidth;
+    yAxis.style.height = chartHeight + 'px';
+    yAxis.style.paddingRight = isMobile ? '4px' : '8px'; // Reduced padding on mobile
+    yAxis.style.flexShrink = '0';
+    
+    // Generate Y-axis labels (0 to maxCount, with nice intervals)
+    const yAxisLabels = [];
+    const numTicks = 5;
+    for (let i = 0; i <= numTicks; i++) {
+        const value = Math.round((maxCount / numTicks) * i);
+        yAxisLabels.push(value);
+    }
+    
+    yAxisLabels.forEach(value => {
+        const label = document.createElement('div');
+        label.style.fontSize = fontSize + 'px';
+        label.style.color = '#8d99ae';
+        label.style.textAlign = 'right';
+        label.style.fontWeight = '500';
+        label.style.lineHeight = '1';
+        label.textContent = value;
+        yAxis.appendChild(label);
+    });
+    
+    container.appendChild(yAxis);
+    
+    // Create chart area
+    const chartArea = document.createElement('div');
+    chartArea.style.display = 'flex';
+    chartArea.style.alignItems = 'flex-end';
+    chartArea.style.justifyContent = isMobile ? 'flex-start' : 'space-around'; // Changed to flex-start on mobile
+    chartArea.style.gap = gap;
+    chartArea.style.flex = '1';
+    chartArea.style.height = chartHeight + 'px';
+    chartArea.style.position = 'relative';
+    chartArea.style.paddingLeft = '0'; // No extra padding
+    
+    // Add horizontal grid lines
+    yAxisLabels.forEach((value, index) => {
+        if (index > 0) { // Skip the bottom line (0)
+            const gridLine = document.createElement('div');
+            gridLine.style.position = 'absolute';
+            gridLine.style.left = '0';
+            gridLine.style.right = '0';
+            gridLine.style.height = '1px';
+            gridLine.style.background = '#edf2f4';
+            gridLine.style.top = ((numTicks - index) / numTicks * chartHeight) + 'px';
+            chartArea.appendChild(gridLine);
+        }
+    });
     
     stages.forEach((stage, index) => {
         const count = stageCounts[index];
-        const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
-        const barHeight = (percentage / 100) * chartHeight;
+        // Height directly corresponds to count, scaled to chart height
+        const barHeight = maxCount > 0 ? (count / maxCount) * chartHeight : 0;
         
         const column = document.createElement('div');
         column.style.display = 'flex';
@@ -4910,17 +5128,18 @@ function updateSalesRepPipelineChart() {
         column.style.alignItems = 'center';
         column.style.flex = '1';
         column.style.maxWidth = '70px';
+        column.style.position = 'relative';
+        column.style.zIndex = '2';
         column.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                <div style="font-size: 14px; font-weight: 700; color: #2c7da0; margin-bottom: 6px; text-align: center; min-height: 24px; display: flex; align-items: center; justify-content: center;">${count}</div>
-                <div style="width: 100%; height: ${chartHeight}px; background: #edf2f4; border-radius: 4px 4px 0 0; position: relative; display: flex; align-items: flex-end;">
+            <div style="width: 100%; height: ${chartHeight}px; position: relative; display: flex; align-items: flex-end;">
                     <div style="width: 100%; height: ${barHeight}px; background: linear-gradient(180deg, #2c7da0 0%, #014f86 100%); border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: ${count > 0 ? '4px' : '0'};"></div>
                 </div>
-                <div style="font-size: 10px; color: #8d99ae; margin-top: 6px; text-align: center; font-weight: 500;">${stage}</div>
-            </div>
+            <div style="font-size: ${labelFontSize}px; color: #8d99ae; margin-top: 6px; text-align: center; font-weight: 500;">${stage}</div>
         `;
-        container.appendChild(column);
+        chartArea.appendChild(column);
     });
+    
+    container.appendChild(chartArea);
 }
 
 function updateSalesRepTasksList() {
@@ -5094,7 +5313,6 @@ function updateSalesRepRecentLeads() {
                 <select class="status-dropdown-inline" onchange="updateLeadStatusQuick(${lead.id}, this.value)" onclick="event.stopPropagation();" style="padding: 4px 8px; border: 1px solid #8d99ae; border-radius: 4px; font-size: 12px; background: white; cursor: pointer;">
                     <option value="New" ${lead.status === 'New' ? 'selected' : ''}>New</option>
                     <option value="Contacted" ${lead.status === 'Contacted' ? 'selected' : ''}>Contacted</option>
-                    <option value="Qualified" ${lead.status === 'Qualified' ? 'selected' : ''}>Qualified</option>
                     <option value="Proposal" ${lead.status === 'Proposal' ? 'selected' : ''}>Proposal</option>
                     <option value="Negotiation" ${lead.status === 'Negotiation' ? 'selected' : ''}>Negotiation</option>
                     <option value="Won" ${lead.status === 'Won' ? 'selected' : ''}>Won</option>
@@ -5113,35 +5331,127 @@ function updatePipelineChart() {
     
     // Admin Dashboard charts use ALL leads (not filtered)
     const allLeads = leads;
-    const activeStages = ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation'];
+    const activeStages = ['New', 'Contacted', 'Proposal', 'Negotiation'];
     const endStages = ['Won', 'Lost'];
     
     const activeStageCounts = activeStages.map(stage => allLeads.filter(l => l.status === stage).length);
     const endStageCounts = endStages.map(stage => allLeads.filter(l => l.status === stage).length);
     const maxCount = Math.max(...activeStageCounts, ...endStageCounts, 1);
+    
+    // Keep same dimensions on mobile as desktop, but enable horizontal scrolling
+    const isMobile = window.innerWidth <= 767;
     const chartHeight = 200;
+    const fontSize = 11;
+    const labelFontSize = 11;
+    const barWidth = '80px';
+    const gap = '12px';
+    const yAxisWidth = '40px';
     
     container.innerHTML = '';
     container.style.display = 'flex';
+    container.style.flexDirection = 'row';
     container.style.alignItems = 'flex-end';
-    container.style.justifyContent = 'space-around';
-    container.style.gap = '12px';
-    container.style.height = chartHeight + 60 + 'px';
+    container.style.gap = gap;
+    container.style.height = (chartHeight + 50) + 'px';
     container.style.padding = '20px 0';
+    // Enable horizontal scrolling on mobile
+    container.style.overflowX = isMobile ? 'auto' : 'visible';
+    container.style.overflowY = 'visible';
+    container.style.webkitOverflowScrolling = 'touch'; // Smooth scrolling on iOS
+    if (isMobile) {
+        container.style.scrollbarWidth = 'none';
+        container.style.msOverflowStyle = 'none';
+        container.style.touchAction = 'pan-x'; // Enable horizontal panning
+        // Make container scrollable
+        container.style.width = '100%';
+        container.style.maxWidth = '100%';
+    }
+    
+    // Create Y-axis with numbers on the left
+    const yAxis = document.createElement('div');
+    yAxis.style.display = 'flex';
+    yAxis.style.flexDirection = 'column-reverse';
+    yAxis.style.justifyContent = 'space-between';
+    yAxis.style.width = yAxisWidth;
+    yAxis.style.height = chartHeight + 'px';
+    yAxis.style.paddingRight = '8px';
+    yAxis.style.flexShrink = '0';
+    
+    // Generate Y-axis labels (0 to maxCount, with nice intervals)
+    const numTicks = 5;
+    const yAxisLabels = [];
+    for (let i = 0; i <= numTicks; i++) {
+        const value = Math.round((maxCount / numTicks) * i);
+        yAxisLabels.push(value);
+    }
+    
+    yAxisLabels.forEach(value => {
+        const label = document.createElement('div');
+        label.style.fontSize = fontSize + 'px';
+        label.style.color = '#8d99ae';
+        label.style.textAlign = 'right';
+        label.style.fontWeight = '500';
+        label.style.lineHeight = '1.2';
+        label.textContent = value;
+        yAxis.appendChild(label);
+    });
+    
+    container.appendChild(yAxis);
+    
+    // Create chart area
+    const chartArea = document.createElement('div');
+    chartArea.style.display = 'flex';
+    chartArea.style.alignItems = 'flex-end';
+    chartArea.style.justifyContent = 'space-around';
+    chartArea.style.gap = gap;
+    chartArea.style.flex = isMobile ? '0 0 auto' : '1';
+    chartArea.style.height = chartHeight + 'px';
+    chartArea.style.position = 'relative';
+    // On mobile, make chart area wide enough to fit all bars without wrapping
+    if (isMobile) {
+        const activeBars = activeStages.length;
+        const endBars = endStages.length;
+        const totalBars = activeBars + endBars;
+        // Calculate: bars width + gaps between bars + separator (2px + 8px margin on each side = 18px)
+        const barsWidth = totalBars * 80;
+        const gapsWidth = (totalBars - 1) * 12; // Gaps between bars
+        const separatorWidth = 18; // 2px separator + 8px margin on each side
+        const totalWidth = barsWidth + gapsWidth + separatorWidth;
+        chartArea.style.minWidth = totalWidth + 'px';
+        chartArea.style.width = totalWidth + 'px';
+    }
+    chartArea.style.overflowX = 'visible';
+    chartArea.style.overflowY = 'visible';
+    
+    // Add horizontal grid lines
+    yAxisLabels.forEach((value, index) => {
+        if (index > 0) { // Skip the bottom line (0)
+            const gridLine = document.createElement('div');
+            gridLine.style.position = 'absolute';
+            gridLine.style.left = '0';
+            gridLine.style.right = '0';
+            gridLine.style.height = '1px';
+            gridLine.style.background = '#edf2f4';
+            gridLine.style.top = ((numTicks - index) / numTicks * chartHeight) + 'px';
+            chartArea.appendChild(gridLine);
+        }
+    });
     
     // Add a separator element between active stages and end states
     const separator = document.createElement('div');
-    separator.style.width = '2px';
-    separator.style.height = chartHeight + 40 + 'px';
-    separator.style.background = '#e0e0e0';
-    separator.style.margin = '0 8px';
-    separator.style.flexShrink = '0';
+        separator.style.width = '2px';
+    separator.style.height = chartHeight + 'px';
+        separator.style.background = '#e0e0e0';
+        separator.style.margin = '0 8px';
+        separator.style.flexShrink = '0';
+    separator.style.position = 'relative';
+    separator.style.zIndex = '1';
     
     // Render active stages
     activeStages.forEach((stage, index) => {
         const count = activeStageCounts[index];
-        const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
-        const barHeight = (percentage / 100) * chartHeight;
+        // Height directly corresponds to count, scaled to chart height
+        const barHeight = maxCount > 0 ? (count / maxCount) * chartHeight : 0;
         
         const column = document.createElement('div');
         column.style.display = 'flex';
@@ -5149,26 +5459,25 @@ function updatePipelineChart() {
         column.style.alignItems = 'center';
         column.style.flex = '1';
         column.style.maxWidth = '80px';
+        column.style.position = 'relative';
+        column.style.zIndex = '2';
         column.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                <div style="font-size: 12px; font-weight: 600; color: #012a4a; margin-bottom: 8px; text-align: center; min-height: 32px; display: flex; align-items: center; justify-content: center;">${count}</div>
-                <div style="width: 100%; height: ${chartHeight}px; background: #edf2f4; border-radius: 4px 4px 0 0; position: relative; display: flex; align-items: flex-end;">
+            <div style="width: 100%; height: ${chartHeight}px; position: relative; display: flex; align-items: flex-end;">
                     <div style="width: 100%; height: ${barHeight}px; background: #014f86; border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: ${count > 0 ? '4px' : '0'};"></div>
                 </div>
-                <div style="font-size: 11px; color: #8d99ae; margin-top: 8px; text-align: center; font-weight: 500;">${stage}</div>
-            </div>
+            <div style="font-size: ${labelFontSize}px; color: #8d99ae; margin-top: 6px; text-align: center; font-weight: 500; line-height: 1.2;">${stage}</div>
         `;
-        container.appendChild(column);
+        chartArea.appendChild(column);
     });
     
     // Add separator
-    container.appendChild(separator);
+    chartArea.appendChild(separator);
     
     // Render end states (Won and Lost) with different styling
     endStages.forEach((stage, index) => {
         const count = endStageCounts[index];
-        const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
-        const barHeight = (percentage / 100) * chartHeight;
+        // Height directly corresponds to count, scaled to chart height
+        const barHeight = maxCount > 0 ? (count / maxCount) * chartHeight : 0;
         const isWon = stage === 'Won';
         const barColor = isWon ? '#06d6a0' : '#ef476f';
         const textColor = isWon ? '#06d6a0' : '#ef476f';
@@ -5179,17 +5488,91 @@ function updatePipelineChart() {
         column.style.alignItems = 'center';
         column.style.flex = '1';
         column.style.maxWidth = '80px';
+        column.style.position = 'relative';
+        column.style.zIndex = '2';
         column.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                <div style="font-size: 12px; font-weight: 600; color: ${textColor}; margin-bottom: 8px; text-align: center; min-height: 32px; display: flex; align-items: center; justify-content: center;">${count}</div>
-                <div style="width: 100%; height: ${chartHeight}px; background: #edf2f4; border-radius: 4px 4px 0 0; position: relative; display: flex; align-items: flex-end;">
+            <div style="width: 100%; height: ${chartHeight}px; position: relative; display: flex; align-items: flex-end;">
                     <div style="width: 100%; height: ${barHeight}px; background: ${barColor}; border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: ${count > 0 ? '4px' : '0'};"></div>
                 </div>
-                <div style="font-size: 11px; color: ${textColor}; margin-top: 8px; text-align: center; font-weight: 600;">${stage}</div>
-            </div>
+            <div style="font-size: ${labelFontSize}px; color: ${textColor}; margin-top: 6px; text-align: center; font-weight: 600; line-height: 1.2;">${stage}</div>
         `;
-        container.appendChild(column);
+        chartArea.appendChild(column);
     });
+    
+    container.appendChild(chartArea);
+    
+    // Setup swipe functionality for mobile after chart is rendered
+    if (isMobile) {
+        setupPipelineChartSwipe(container);
+    }
+}
+
+// Setup swipe functionality for pipeline chart on mobile
+function setupPipelineChartSwipe(chartContainer) {
+    if (!chartContainer) return;
+    
+    // Skip if already initialized
+    if (chartContainer.dataset.swipeInitialized === 'true') return;
+    chartContainer.dataset.swipeInitialized = 'true';
+    
+    let startX = 0;
+    let scrollLeft = 0;
+    let isDown = false;
+    
+    // Touch events for mobile swipe
+    chartContainer.addEventListener('touchstart', (e) => {
+        isDown = true;
+        startX = e.touches[0].pageX - chartContainer.offsetLeft;
+        scrollLeft = chartContainer.scrollLeft;
+    }, { passive: true });
+    
+    chartContainer.addEventListener('touchmove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.touches[0].pageX - chartContainer.offsetLeft;
+        const walk = (x - startX) * 1.5; // Scroll speed multiplier
+        chartContainer.scrollLeft = scrollLeft - walk;
+    }, { passive: false });
+    
+    chartContainer.addEventListener('touchend', () => {
+        isDown = false;
+    }, { passive: true });
+    
+    // Mouse events for desktop testing (optional)
+    chartContainer.addEventListener('mousedown', (e) => {
+        if (window.innerWidth > 767) return;
+        isDown = true;
+        startX = e.pageX - chartContainer.offsetLeft;
+        scrollLeft = chartContainer.scrollLeft;
+        chartContainer.style.cursor = 'grabbing';
+    });
+    
+    chartContainer.addEventListener('mouseleave', () => {
+        isDown = false;
+        if (window.innerWidth <= 767) {
+            chartContainer.style.cursor = 'grab';
+        }
+    });
+    
+    chartContainer.addEventListener('mouseup', () => {
+        isDown = false;
+        if (window.innerWidth <= 767) {
+            chartContainer.style.cursor = 'grab';
+        }
+    });
+    
+    chartContainer.addEventListener('mousemove', (e) => {
+        if (!isDown || window.innerWidth > 767) return;
+        e.preventDefault();
+        const x = e.pageX - chartContainer.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        chartContainer.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Set initial cursor style for mobile
+    if (window.innerWidth <= 767) {
+        chartContainer.style.cursor = 'grab';
+    }
 }
 
 function updateSourcesChart() {
@@ -6458,5 +6841,166 @@ function saveTarget() {
 
 function editTarget(targetId) {
     openTargetModal(null, targetId);
+}
+
+// Setup date inputs to show calendar immediately on click/focus
+function setupDateInputs() {
+    // Function to handle date input click/focus
+    const handleDateInput = (input) => {
+        if (!input) return;
+        
+        // Skip if already processed
+        if (input.dataset.datePickerSetup === 'true') return;
+        input.dataset.datePickerSetup = 'true';
+        
+        // Function to show picker
+        const showPicker = () => {
+            // Use showPicker() if available (modern browsers)
+            if (input.showPicker && typeof input.showPicker === 'function') {
+                try {
+                    input.showPicker();
+                } catch (e) {
+                    // Fallback if showPicker fails (e.g., not in user gesture)
+                    // Trigger click as fallback
+                    setTimeout(() => {
+                        input.click();
+                    }, 0);
+                }
+            } else {
+                // Fallback for older browsers - trigger click
+                input.click();
+            }
+        };
+        
+        // Handle click event (works on both mobile and desktop)
+        input.addEventListener('click', function(e) {
+            // Don't prevent default - let the input focus naturally
+            // Show picker immediately after a tiny delay to ensure focus happens first
+            setTimeout(() => {
+                showPicker();
+            }, 0);
+        }, { passive: true });
+        
+        // Handle focus event (for keyboard navigation and programmatic focus)
+        input.addEventListener('focus', function() {
+            // Small delay to ensure input is focused first
+            setTimeout(() => {
+                showPicker();
+            }, 10);
+        }, { passive: true });
+        
+        // Handle touchstart on mobile (for better mobile support)
+        // This ensures the picker opens on the first touch
+        input.addEventListener('touchstart', function(e) {
+            // Don't prevent default - let touch work normally
+            // The click handler will also fire, but this ensures immediate response
+            setTimeout(() => {
+                if (document.activeElement === input) {
+                    showPicker();
+                }
+            }, 50);
+        }, { passive: true });
+    };
+    
+    // Setup for all existing date inputs
+    const dateInputs = document.querySelectorAll('input[type="date"], input[type="datetime-local"]');
+    dateInputs.forEach(handleDateInput);
+    
+    // Also setup for dynamically added date inputs using MutationObserver
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) { // Element node
+                    // Check if the added node is a date input
+                    if (node.tagName === 'INPUT' && (node.type === 'date' || node.type === 'datetime-local')) {
+                        handleDateInput(node);
+                    }
+                    // Check for date inputs within the added node
+                    const dateInputsInNode = node.querySelectorAll && node.querySelectorAll('input[type="date"], input[type="datetime-local"]');
+                    if (dateInputsInNode) {
+                        dateInputsInNode.forEach(handleDateInput);
+                    }
+                }
+            });
+        });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+}
+
+// Setup swipe functionality for test drives and inventory tables on mobile
+function setupTableSwipe() {
+    const isMobile = window.innerWidth <= 767;
+    
+    const testDrivesWrapper = document.querySelector('#testdrives .table-wrapper');
+    const inventoryWrapper = document.querySelector('#inventory .table-wrapper');
+    
+    [testDrivesWrapper, inventoryWrapper].forEach(wrapper => {
+        if (!wrapper) return;
+        
+        // Skip if already initialized
+        if (wrapper.dataset.swipeInitialized === 'true') return;
+        wrapper.dataset.swipeInitialized = 'true';
+        
+        let startX = 0;
+        let scrollLeft = 0;
+        let isDown = false;
+        
+        // Touch events for mobile
+        wrapper.addEventListener('touchstart', (e) => {
+            if (!isMobile) return;
+            isDown = true;
+            startX = e.touches[0].pageX - wrapper.offsetLeft;
+            scrollLeft = wrapper.scrollLeft;
+        }, { passive: true });
+        
+        wrapper.addEventListener('touchmove', (e) => {
+            if (!isDown || !isMobile) return;
+            e.preventDefault();
+            const x = e.touches[0].pageX - wrapper.offsetLeft;
+            const walk = (x - startX) * 2; // Scroll speed multiplier
+            wrapper.scrollLeft = scrollLeft - walk;
+        }, { passive: false });
+        
+        wrapper.addEventListener('touchend', () => {
+            isDown = false;
+        }, { passive: true });
+        
+        // Mouse events for desktop testing (optional)
+        wrapper.addEventListener('mousedown', (e) => {
+            if (!isMobile) return;
+            isDown = true;
+            startX = e.pageX - wrapper.offsetLeft;
+            scrollLeft = wrapper.scrollLeft;
+            wrapper.style.cursor = 'grabbing';
+        });
+        
+        wrapper.addEventListener('mouseleave', () => {
+            isDown = false;
+            if (isMobile) wrapper.style.cursor = 'grab';
+        });
+        
+        wrapper.addEventListener('mouseup', () => {
+            isDown = false;
+            if (isMobile) wrapper.style.cursor = 'grab';
+        });
+        
+        wrapper.addEventListener('mousemove', (e) => {
+            if (!isDown || !isMobile) return;
+            e.preventDefault();
+            const x = e.pageX - wrapper.offsetLeft;
+            const walk = (x - startX) * 2;
+            wrapper.scrollLeft = scrollLeft - walk;
+        });
+        
+        // Set initial cursor style for mobile
+        if (isMobile) {
+            wrapper.style.cursor = 'grab';
+        }
+    });
 }
 

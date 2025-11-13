@@ -53,6 +53,11 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Ensure all body text uses Inter font consistently */
+body, p, span, div, td, th, label, input, select, textarea, button, a {
+    font-family: var(--font-family);
+}
+
 /* Typography */
 h1, .h1 {
     font-size: 32px;
@@ -836,6 +841,9 @@ body.sidebar-collapsed .main-content {
     padding: var(--spacing-lg);
     box-shadow: var(--shadow-sm);
     transition: box-shadow 0.3s;
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+    clear: both;
 }
 
 .card:hover, .table-card:hover, .chart-card:hover, .report-card:hover {
@@ -855,6 +863,8 @@ body.sidebar-collapsed .main-content {
     grid-template-columns: 60% 40%;
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-xl);
+    position: relative;
+    clear: both;
 }
 
 .chart-container {
@@ -862,6 +872,37 @@ body.sidebar-collapsed .main-content {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Mobile optimizations for chart container */
+@media (max-width: 767px) {
+    .chart-container {
+        min-height: 160px;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .chart-container::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-container {
+        min-height: 140px;
+    }
+}
+
+.chart-card {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
 }
 
 /* Filter Bar */
@@ -1983,6 +2024,12 @@ body.sidebar-collapsed .main-content {
         -webkit-overflow-scrolling: touch;
         margin: 0 calc(-1 * var(--spacing-md));
         padding: 0 var(--spacing-md);
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+    }
+    
+    .team-performance-table::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
     }
     
     .team-performance-table table {
@@ -2009,6 +2056,24 @@ body.sidebar-collapsed .main-content {
 
 /* Mobile devices */
 @media (max-width: 767px) {
+    /* Team Performance - hide scrollbar on mobile */
+    .team-performance-container {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+    }
+    
+    .team-performance-container::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+    
+    .team-performance-table {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+    }
+    
+    .team-performance-table::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
     /* Typography adjustments */
     h1, .h1 {
         font-size: 24px;
@@ -2044,12 +2109,24 @@ body.sidebar-collapsed .main-content {
         font-size: 18px;
     }
     
-    .top-search {
+    .top-nav-right {
+        gap: var(--spacing-sm);
+        flex-wrap: nowrap;
+    }
+    
+    .search-container {
         display: none;
     }
     
+    .notification-btn {
+        padding: 6px;
+        flex-shrink: 0;
+    }
+    
     .user-profile-dropdown {
+        order: 3;
         padding: 4px;
+        flex-shrink: 0;
     }
     
     .user-avatar {
@@ -2064,10 +2141,6 @@ body.sidebar-collapsed .main-content {
     
     .dropdown-arrow {
         display: none;
-    }
-    
-    .notification-btn {
-        padding: 6px;
     }
     
     /* App Container */
@@ -2128,13 +2201,28 @@ body.sidebar-collapsed .main-content {
     }
     
     .sidebar-resize-handle::after {
-        content: '☰';
+        content: '☰' !important;
         font-size: 20px;
         color: var(--charcoal);
+        border: none !important;
+        width: auto !important;
+        height: auto !important;
+        position: static !important;
+        transform: none !important;
+    }
+    
+    .sidebar.open .sidebar-resize-handle {
+        display: none;
     }
     
     .sidebar.open .sidebar-resize-handle::after {
-        content: '✕';
+        display: none;
+    }
+    
+    .sidebar.collapsed .sidebar-resize-handle::after,
+    .sidebar:not(.collapsed) .sidebar-resize-handle::after {
+        border: none !important;
+        content: '☰' !important;
     }
     
     .nav-item {
@@ -2152,7 +2240,7 @@ body.sidebar-collapsed .main-content {
     
     /* Metrics Grid */
     .metrics-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
         gap: var(--spacing-md);
     }
     
@@ -2194,7 +2282,9 @@ body.sidebar-collapsed .main-content {
     
     /* Filter Bar */
     .filter-bar {
-        flex-direction: column;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
         align-items: stretch;
         gap: var(--spacing-sm);
     }
@@ -2203,11 +2293,58 @@ body.sidebar-collapsed .main-content {
         width: 100%;
     }
     
-    .search-input,
+    .filter-bar select,
+    .filter-bar input,
+    .filter-bar .btn {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    
+    /* Task filters - make status and priority sit side by side on mobile */
+    #tasks .filter-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-sm);
+    }
+    
+    #tasks .filter-bar select:last-child {
+        grid-column: 1 / -1;
+    }
+    
+    /* Test drives filter bar - make items sit side by side */
+    #testdrives .filter-bar {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+    
+    #testdrives .filter-bar select,
+    #testdrives .filter-bar input,
+    #testdrives .filter-bar .btn {
+        flex: 1 1 auto;
+        min-width: 120px;
+    }
+    
     .filter-select {
-        width: 100%;
         min-height: 44px; /* Touch-friendly */
         font-size: 16px; /* Prevents zoom on iOS */
+        flex: 1 1 auto;
+        min-width: 120px;
+    }
+    
+    .search-input {
+        min-height: 44px; /* Touch-friendly */
+        font-size: 16px; /* Prevents zoom on iOS */
+        flex: 1 1 auto;
+        min-width: 200px;
+    }
+    
+    .filter-input {
+        min-height: 44px;
+        font-size: 16px;
+        flex: 1 1 auto;
+        min-width: 120px;
     }
     
     /* Tables */
@@ -2216,11 +2353,39 @@ body.sidebar-collapsed .main-content {
         -webkit-overflow-scrolling: touch;
         margin: 0 calc(-1 * var(--spacing-md));
         padding: 0 var(--spacing-md);
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+        touch-action: pan-x; /* Enable horizontal panning */
+    }
+    
+    .table-wrapper::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+    
+    /* Test Drives and Inventory tables - swipeable on mobile */
+    #testdrives .table-wrapper,
+    #inventory .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        touch-action: pan-x;
+    }
+    
+    #testdrives .table-wrapper::-webkit-scrollbar,
+    #inventory .table-wrapper::-webkit-scrollbar {
+        display: none;
     }
     
     .data-table {
         min-width: 900px;
         font-size: 13px;
+    }
+    
+    #testdrives .data-table,
+    #inventory .data-table {
+        min-width: 800px;
     }
     
     .data-table th,
@@ -2322,23 +2487,50 @@ body.sidebar-collapsed .main-content {
         width: 100%;
         right: -100%;
         border-radius: 0;
+        top: 56px;
+        height: calc(100vh - 56px);
     }
     
+    .slide-out-panel.active,
     .slide-out-panel.open {
         right: 0;
     }
     
     /* Pipeline Board */
     .pipeline-board {
-        flex-direction: column;
+        flex-direction: row;
         gap: var(--spacing-md);
-        overflow-x: visible;
-        overflow-y: visible;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+        padding: var(--spacing-md);
+        margin: 0 calc(-1 * var(--spacing-md));
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+    
+    .pipeline-board::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
     }
     
     .pipeline-column {
-        min-width: 100%;
-        width: 100%;
+        min-width: calc(100vw - var(--spacing-md) * 2);
+        width: calc(100vw - var(--spacing-md) * 2);
+        max-width: calc(100vw - var(--spacing-md) * 2);
+        flex-shrink: 0;
+        scroll-snap-align: start;
+    }
+    
+    .lead-card {
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .lead-card:active {
+        transform: scale(0.98);
     }
     
     .pipeline-card {
@@ -2417,6 +2609,12 @@ body.sidebar-collapsed .main-content {
         -webkit-overflow-scrolling: touch;
         margin: 0 calc(-1 * var(--spacing-md));
         padding: 0 var(--spacing-md);
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+    }
+    
+    .team-performance-table::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
     }
     
     .team-performance-table table {
@@ -2542,15 +2740,25 @@ body.sidebar-collapsed .main-content {
     
     /* Pipeline Chart */
     #pipeline-chart {
-        flex-wrap: wrap;
-        gap: var(--spacing-sm);
-        justify-content: center;
+        flex-wrap: nowrap;
+        gap: var(--spacing-xs);
+        justify-content: space-between;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+        -webkit-overflow-scrolling: touch;
+        padding: 16px 8px;
+    }
+    
+    #pipeline-chart::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
     }
     
     #pipeline-chart > div {
-        flex: 0 0 calc(50% - var(--spacing-sm));
-        max-width: calc(50% - var(--spacing-sm));
-        min-width: 120px;
+        flex: 0 0 auto;
+        min-width: 60px;
+        max-width: 80px;
     }
     
     /* Funnel Chart */
@@ -2646,17 +2854,28 @@ body.sidebar-collapsed .main-content {
     /* Header Actions */
     .header-actions {
         width: 100%;
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .header-actions .btn,
+    .header-actions .date-range-selector,
+    .header-actions .export-dropdown {
+        flex: 1 1 auto;
+        min-width: 0;
     }
     
     .date-range-selector {
-        width: 100%;
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
     }
     
     .date-range-selector input {
-        width: 100%;
+        flex: 1 1 auto;
+        min-width: 120px;
     }
     
     /* Export Dropdown */
@@ -2738,6 +2957,8 @@ body.sidebar-collapsed .main-content {
     /* Top Search - Show on mobile with icon */
     .search-container {
         position: relative;
+        flex-shrink: 1;
+        min-width: 0;
     }
     
     .top-search {
@@ -2745,10 +2966,12 @@ body.sidebar-collapsed .main-content {
         padding: 0;
         opacity: 0;
         transition: width 0.3s, opacity 0.3s;
+        border: none;
     }
     
     .search-container.active .top-search {
-        width: 200px;
+        width: 150px;
+        max-width: calc(100vw - 200px);
         padding: 0 var(--spacing-md) 0 40px;
         opacity: 1;
     }
@@ -2756,11 +2979,14 @@ body.sidebar-collapsed .main-content {
     /* Notification Button */
     .notification-btn {
         padding: 8px;
+        flex-shrink: 0;
+        margin-left: var(--spacing-xs);
     }
     
     /* User Profile */
     .user-profile-dropdown {
         padding: 4px;
+        flex-shrink: 0;
     }
 }
 
@@ -2773,6 +2999,18 @@ body.sidebar-collapsed .main-content {
     
     .logo {
         font-size: 16px;
+    }
+    
+    .top-nav-right {
+        gap: var(--spacing-xs);
+    }
+    
+    .search-container {
+        display: none;
+    }
+    
+    .notification-btn {
+        padding: 6px;
     }
     
     .main-content {
@@ -2935,10 +3173,23 @@ body.sidebar-collapsed .main-content {
         font-size: 11px;
     }
     
+    #pipeline-chart {
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #pipeline-chart::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+    
     #pipeline-chart > div {
-        flex: 0 0 100%;
-        max-width: 100%;
-        margin-bottom: var(--spacing-sm);
+        flex: 0 0 auto;
+        min-width: 60px;
+        max-width: 80px;
+        margin-bottom: 0;
     }
     
     .charts-section {
@@ -3132,9 +3383,10 @@ body.salesrep-mode .admin-view.active {
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 400;
     color: var(--charcoal);
+    font-family: var(--font-family);
 }
 
 .quick-action-btn:hover {
@@ -3146,6 +3398,12 @@ body.salesrep-mode .admin-view.active {
 
 .quick-action-btn svg {
     flex-shrink: 0;
+}
+
+.quick-action-btn span {
+    font-size: 16px;
+    font-weight: 400;
+    font-family: var(--font-family);
 }
 
 .salesrep-pipeline-overview {
@@ -3400,6 +3658,15 @@ body.salesrep-mode .admin-view.active {
 /* Team Performance Table */
 .team-performance-container {
     overflow-x: auto;
+    width: 100%;
+    position: relative;
+    clear: both;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+.team-performance-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .team-performance-table {
