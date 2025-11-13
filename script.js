@@ -1636,17 +1636,39 @@ function switchUser(userId) {
     // Update pipeline with filtered data
     updatePipeline();
     
-    // Step 11: Finally - Update all views (pipeline, reports, metrics) - IMMEDIATELY, NO DELAYS
+    // Step 11: Finally - Update all views (pipeline, reports, metrics)
     // CRITICAL: Update dashboard AFTER ensuring correct section is visible and data is loaded
-    // Data is already loaded and filtered, so update immediately
-    if (finalUser.role === 'Sales Rep') {
-        updateSalesRepDashboard();
-    } else {
-        updateDashboard();
-        updateReports();
-    }
-    
-    updateAllNavPreviews();
+    // Use requestAnimationFrame to ensure DOM has time to reflow before metrics update
+    requestAnimationFrame(() => {
+        // Ensure the section is fully active and visible before updating
+        if (targetSectionEl && targetSectionEl.classList.contains('active')) {
+            // Force a reflow to ensure the section is rendered
+            void targetSectionEl.offsetHeight;
+            
+            // Now update the dashboard metrics
+            if (finalUser.role === 'Sales Rep') {
+                updateSalesRepDashboard();
+            } else {
+                updateDashboard();
+                updateReports();
+            }
+            
+            updateAllNavPreviews();
+            
+            // Force another reflow after updates to ensure rendering
+            requestAnimationFrame(() => {
+                if (targetSectionEl) {
+                    // Force reflow on metric cards directly
+                    const metricCards = targetSectionEl.querySelectorAll('.metric-card, .metric-value');
+                    metricCards.forEach(card => {
+                        void card.offsetHeight;
+                    });
+                    // Additional reflow triggers
+                    void targetSectionEl.getBoundingClientRect();
+                }
+            });
+        }
+    });
     
     showToast(`Switched to ${finalUser.name}`, 'success');
 }
@@ -2148,6 +2170,15 @@ function setupEventListeners() {
         contactSearch.addEventListener('input', filterContacts);
     }
     
+    // Sort leads by value column header
+    const valueSortHeader = document.getElementById('value-sort-header');
+    if (valueSortHeader) {
+        valueSortHeader.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent any default behavior
+            sortLeads('value');
+        });
+    }
+    
     // Close modals on escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
@@ -2501,6 +2532,19 @@ function displayLeads(leadsToShow) {
     if (totalCountEl) {
         totalCountEl.textContent = leadsToShow.length;
     }
+    
+    // Force a browser reflow to ensure table updates are rendered immediately
+    // Reading layout properties forces the browser to calculate layout and render changes
+    if (tbody) {
+        void tbody.offsetHeight; // Force reflow
+        void tbody.offsetWidth; // Force reflow
+        void tbody.getBoundingClientRect(); // Strong reflow trigger
+    }
+    
+    // Also force reflow on the table itself
+    if (table) {
+        void table.offsetHeight;
+    }
 }
 
 // Sorting state
@@ -2556,10 +2600,36 @@ function sortLeads(column) {
     const sortIndicator = document.getElementById('value-sort-indicator');
     if (sortIndicator) {
         sortIndicator.textContent = leadsSortDirection === 'asc' ? '↑' : '↓';
+        // Force reflow on indicator update
+        void sortIndicator.offsetHeight;
     }
     
-    // Display sorted leads
-    displayLeads(sortedLeads);
+    // Display sorted leads - use requestAnimationFrame to ensure DOM has time to process click event
+    // This ensures the table repaints immediately after sorting
+    requestAnimationFrame(() => {
+        displayLeads(sortedLeads);
+        
+        // Force additional reflow after display to ensure immediate rendering
+        requestAnimationFrame(() => {
+            const tbody = document.getElementById('leads-table-body');
+            const table = document.querySelector('.data-table');
+            if (tbody) {
+                void tbody.offsetHeight;
+                void tbody.offsetWidth;
+                void tbody.getBoundingClientRect();
+            }
+            if (table) {
+                void table.offsetHeight;
+                void table.getBoundingClientRect();
+            }
+            
+            // Also force reflow on the leads section container
+            const leadsSection = document.getElementById('leads');
+            if (leadsSection) {
+                void leadsSection.offsetHeight;
+            }
+        });
+    });
 }
 
 function openLeadModal(leadId = null) {
@@ -4024,33 +4094,41 @@ function updateDashboard() {
         ? leads  // Admin sees ALL leads
         : getFilteredLeads();  // Fallback to filtered (shouldn't happen, but safe)
     
-    // Update metric cards
-    const totalLeadsEl = document.querySelector('.metric-card .metric-value');
-    if (totalLeadsEl) {
+    // Update metric cards - update each one individually and force reflow
+    const metricValues = document.querySelectorAll('.metric-card .metric-value');
+    
+    if (metricValues.length > 0) {
         const totalLeads = allLeads.length;
-        document.querySelectorAll('.metric-card .metric-value')[0].textContent = totalLeads;
+        metricValues[0].textContent = totalLeads;
+        // Force immediate reflow after first update
+        void metricValues[0].offsetHeight;
     }
     
-    const activeLeads = allLeads.filter(l => 
-        ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation'].includes(l.status)
-    ).length;
-    const metricValues = document.querySelectorAll('.metric-value');
     if (metricValues.length > 1) {
+        const activeLeads = allLeads.filter(l => 
+            ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation'].includes(l.status)
+        ).length;
         metricValues[1].textContent = activeLeads;
+        // Force immediate reflow after second update
+        void metricValues[1].offsetHeight;
     }
     
-    const wonLeads = allLeads.filter(l => l.status === 'Won').length;
-    const conversionRate = allLeads.length > 0 ? Math.round((wonLeads / allLeads.length) * 100) : 0;
     if (metricValues.length > 2) {
+        const wonLeads = allLeads.filter(l => l.status === 'Won').length;
+        const conversionRate = allLeads.length > 0 ? Math.round((wonLeads / allLeads.length) * 100) : 0;
         metricValues[2].textContent = conversionRate + '%';
+        // Force immediate reflow after third update
+        void metricValues[2].offsetHeight;
     }
     
-    // Calculate revenue from Won leads only
-    const revenue = allLeads
-        .filter(l => l.status === 'Won')
-        .reduce((sum, lead) => sum + (lead.value || 0), 0);
     if (metricValues.length > 3) {
+        // Calculate revenue from Won leads only
+        const revenue = allLeads
+            .filter(l => l.status === 'Won')
+            .reduce((sum, lead) => sum + (lead.value || 0), 0);
         metricValues[3].textContent = formatCurrency(revenue);
+        // Force immediate reflow after fourth update
+        void metricValues[3].offsetHeight;
     }
     
     // Update charts (use all leads for Admin)
@@ -4061,6 +4139,12 @@ function updateDashboard() {
     
     // Recent activity
     updateRecentActivity();
+    
+    // Force a reflow to ensure UI updates are rendered immediately
+    const dashboardEl = document.getElementById('dashboard');
+    if (dashboardEl) {
+        void dashboardEl.offsetHeight; // Force reflow
+    }
 }
 
 // Sales Rep Dashboard
@@ -4085,22 +4169,28 @@ function updateSalesRepDashboard() {
         greetingEl.textContent = `${greeting}, ${currentUser.name.split(' ')[0]}!`;
     }
     
-    // Update metrics
+    // Update metrics - update each one individually and force reflow
     const totalLeadsEl = document.getElementById('salesrep-total-leads');
     if (totalLeadsEl) {
         totalLeadsEl.textContent = filteredLeads.length;
+        // Force immediate reflow
+        void totalLeadsEl.offsetHeight;
     }
     
     const wonLeadsEl = document.getElementById('salesrep-won-leads');
     if (wonLeadsEl) {
         const wonLeads = filteredLeads.filter(l => l.status === 'Won').length;
         wonLeadsEl.textContent = wonLeads;
+        // Force immediate reflow
+        void wonLeadsEl.offsetHeight;
     }
     
     const pendingTasksEl = document.getElementById('salesrep-pending-tasks');
     if (pendingTasksEl) {
         const pendingTasks = filteredTasks.filter(t => t.status === 'Pending').length;
         pendingTasksEl.textContent = pendingTasks;
+        // Force immediate reflow
+        void pendingTasksEl.offsetHeight;
     }
     
     const revenueEl = document.getElementById('salesrep-revenue');
@@ -4109,6 +4199,8 @@ function updateSalesRepDashboard() {
             .filter(l => l.status === 'Won')
             .reduce((sum, lead) => sum + (lead.value || 0), 0);
         revenueEl.textContent = formatCurrency(revenue);
+        // Force immediate reflow
+        void revenueEl.offsetHeight;
     }
     
     // Update alerts widget
@@ -4123,6 +4215,12 @@ function updateSalesRepDashboard() {
     // Initialize and load sales rep targets
     initializeSalesRepTargetsPeriodSelector();
     loadSalesRepTargets();
+    
+    // Force a reflow to ensure UI updates are rendered immediately
+    const salesrepDashboardEl = document.getElementById('salesrep-dashboard');
+    if (salesrepDashboardEl) {
+        void salesrepDashboardEl.offsetHeight; // Force reflow
+    }
 }
 
 function initializeSalesRepTargetsPeriodSelector() {
