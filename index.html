@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM System - Lead Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+        <div class="top-nav-left">
+            <button class="hamburger-menu" id="hamburger-menu" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <h1 class="logo">CRM System</h1>
+        </div>
+        <div class="top-nav-right">
+            <div class="search-container">
+                <input type="text" class="top-search" placeholder="Search leads, contacts..." id="top-search-input">
+                <span class="search-icon"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+            </div>
+            <button class="notification-btn" aria-label="Notifications">
+                <span class="notification-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+                <span class="notification-dot"></span>
+            </button>
+            <div class="user-profile-dropdown" id="user-profile-dropdown">
+                <div class="user-avatar" id="user-avatar">AU</div>
+                <span class="username" id="username">Admin User</span>
+                <span class="dropdown-arrow">▼</span>
+                <div class="user-dropdown-menu" id="user-dropdown-menu">
+                    <div class="user-dropdown-item" data-user-id="1">
+                        <div class="user-avatar-small">AU</div>
+                        <div>
+                            <div class="user-dropdown-name">Admin User</div>
+                            <div class="user-dropdown-role">Admin</div>
+                        </div>
+                    </div>
+                    <div class="user-dropdown-item" data-user-id="4">
+                        <div class="user-avatar-small">JP</div>
+                        <div>
+                            <div class="user-dropdown-name">Jesse Pinkman</div>
+                            <div class="user-dropdown-role">Sales Rep</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        <!-- Side Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-resize-handle" id="sidebar-toggle" aria-label="Toggle sidebar"></div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+                    <span class="nav-text">Dashboard</span>
+                    <div class="nav-preview">
+                        <div class="nav-preview-title">Dashboard Overview</div>
+                        <div class="nav-preview-content" id="preview-dashboard"></div>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-section="leads">
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                    <span class="nav-text">Leads</span>
+                    <div class="nav-preview">
+                        <div class="nav-preview-title">Leads Management</div>
+                        <div class="nav-preview-content" id="preview-leads"></div>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-section="tasks">
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                    <span class="nav-text">Follow-ups</span>
+                    <div class="nav-preview">
+                        <div class="nav-preview-title">Follow-ups & Tasks</div>
+                        <div class="nav-preview-content" id="preview-tasks"></div>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-section="pipeline">
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 6 13.5 14.5 8.5 9.5 2 16"/><polyline points="16 6 22 6 22 12"/></svg></span>
+                    <span class="nav-text">Pipeline</span>
+                    <div class="nav-preview">
+                        <div class="nav-preview-title">Sales Pipeline</div>
+                        <div class="nav-preview-content" id="preview-pipeline"></div>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-section="reports">
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="12" y1="12" x2="12" y2="18"/></svg></span>
+                    <span class="nav-text">Reports</span>
+                    <div class="nav-preview">
+                        <div class="nav-preview-title">Analytics & Reports</div>
+                        <div class="nav-preview-content" id="preview-reports"></div>
+                    </div>
+                </a>
+                <a href="#" class="nav-item admin-only" data-section="testdrives">
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1"/><path d="M12 15l5-5-5-5"/><path d="M12 10h7"/></svg></span>
+                    <span class="nav-text">Test Drives</span>
+                    <div class="nav-preview">
+                        <div class="nav-preview-title">Test Drive Management</div>
+                        <div class="nav-preview-content" id="preview-testdrives"></div>
+                    </div>
+                </a>
+                <a href="#" class="nav-item admin-only" data-section="inventory">
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 11h14M5 11a2 2 0 1 0 0-4h14a2 2 0 1 0 0 4M5 11v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V11M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></span>
+                    <span class="nav-text">Inventory</span>
+                    <div class="nav-preview">
+                        <div class="nav-preview-title">Vehicle Inventory</div>
+                        <div class="nav-preview-content" id="preview-inventory"></div>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-section="users">
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m9-9h-6M3 12h6"/></svg></span>
+                    <span class="nav-text">Settings</span>
+                    <div class="nav-preview">
+                        <div class="nav-preview-title">Settings & Configuration</div>
+                        <div class="nav-preview-content" id="preview-users"></div>
+                    </div>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="main-content">
+            <!-- Admin Dashboard Section -->
+            <section id="dashboard" class="content-section active admin-view">
+                <div class="page-header">
+                    <h1 class="page-title">Dashboard</h1>
+                    <div class="date-range-selector">
+                        <select id="dashboard-date-range" class="date-range-dropdown">
+                            <option value="today">Today</option>
+                            <option value="week" selected>This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Metrics Cards -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: #012a4a;">0</div>
+                        <div class="metric-label">Total Leads</div>
+                        <div class="metric-change positive">
+                            <span>+12%</span>
+                            <span class="arrow">↑</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: #014f86;">0</div>
+                        <div class="metric-label">Active Leads</div>
+                        <div class="metric-change positive">
+                            <span>+8%</span>
+                            <span class="arrow">↑</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: #2c7da0;">0%</div>
+                        <div class="metric-label">Conversion Rate</div>
+                        <div class="metric-change positive">
+                            <span>+2.5%</span>
+                            <span class="arrow">↑</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: #012a4a;">KSh 0</div>
+                        <div class="metric-label">Revenue This Month</div>
+                        <div class="metric-change positive">
+                            <span>+15%</span>
+                            <span class="arrow">↑</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="charts-section">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Lead Pipeline</h3>
+                        <div id="pipeline-chart" class="chart-container"></div>
+                    </div>
+                </div>
+
+                <!-- Team Performance Section -->
+                <div class="activity-card">
+                    <h3 class="card-title" style="font-weight: 700;">Team Performance</h3>
+                    <div id="team-performance-table" class="team-performance-container"></div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="activity-card">
+                    <h3 class="card-title">Recent Activity</h3>
+                    <div id="recent-activity-list" class="activity-list"></div>
+                </div>
+            </section>
+
+            <!-- Sales Rep Dashboard Section -->
+            <section id="salesrep-dashboard" class="content-section salesrep-view">
+                <!-- Greeting Card - Matching Admin Dashboard Style -->
+                <div class="activity-card">
+                    <h3 class="card-title" id="salesrep-greeting">Welcome back!</h3>
+                    <p style="color: var(--slate-gray); margin-top: -12px;">Here's your performance overview</p>
+                </div>
+
+                <!-- Sales Rep Performance Cards - Matching Admin Dashboard Style -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: #012a4a;" id="salesrep-total-leads">0</div>
+                        <div class="metric-label">My Leads <span style="color: #06d6a0; font-size: 14px; margin-left: 4px;">#1 ↑</span></div>
+                        <div class="metric-change positive">
+                            <span>+12%</span>
+                            <span class="arrow">↑</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: #014f86;" id="salesrep-won-leads">0</div>
+                        <div class="metric-label">Won Deals</div>
+                        <div class="metric-change positive">
+                            <span>+8%</span>
+                            <span class="arrow">↑</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: #2c7da0;" id="salesrep-pending-tasks">0</div>
+                        <div class="metric-label">Pending Tasks</div>
+                        <div class="metric-change positive">
+                            <span>+2.5%</span>
+                            <span class="arrow">↑</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: #012a4a;" id="salesrep-revenue">KSh 0</div>
+                        <div class="metric-label">My Revenue</div>
+                        <div class="metric-change positive">
+                            <span>+15%</span>
+                            <span class="arrow">↑</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts Widget -->
+                <div id="salesrep-alerts" class="activity-card" style="display: none;">
+                    <h3 class="card-title">Alerts</h3>
+                    <div id="alert-uncontacted-leads" class="alert-section" style="display: none;">
+                        <div class="alert-section-header">
+                            <strong>Leads Not Contacted (3+ days)</strong>
+                        </div>
+                        <div id="uncontacted-leads-list" class="alert-items-list"></div>
+                    </div>
+                    <div id="alert-overdue-tasks" class="alert-section" style="display: none;">
+                        <div class="alert-section-header">
+                            <strong>Overdue Tasks</strong>
+                        </div>
+                        <div id="overdue-tasks-list" class="alert-items-list"></div>
+                    </div>
+                    <div id="alert-today-testdrives" class="alert-section" style="display: none;">
+                        <div class="alert-section-header">
+                            <strong>Test Drives Today</strong>
+                        </div>
+                        <div id="today-testdrives-list" class="alert-items-list"></div>
+                    </div>
+                    <div id="alert-payment-followup" class="alert-section" style="display: none;">
+                        <div class="alert-section-header">
+                            <strong>Follow Up Payment Needed</strong>
+                        </div>
+                        <div id="payment-followup-list" class="alert-items-list"></div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="salesrep-quick-actions">
+                    <h2 class="salesrep-section-title">Quick Actions</h2>
+                    <div class="quick-actions-grid">
+                        <button class="quick-action-btn" onclick="openLeadModal()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span>Add New Lead</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="openTaskModal()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <span>Create Task</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="openTestDriveModal()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1"></path>
+                                <polygon points="12 15 17 21 7 21 12 15"></polygon>
+                            </svg>
+                            <span>Schedule Test Drive</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upcoming Tasks - Matching Admin Dashboard Style -->
+                <div class="activity-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                        <h3 class="card-title" style="margin-bottom: 0;">Upcoming Tasks</h3>
+                    </div>
+                    <div id="salesrep-tasks-list" class="activity-list"></div>
+                    <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--light-gray);">
+                        <button class="btn-link" onclick="showSalesRepTasksViewAll()" style="display: flex; align-items: center; gap: 4px; width: 100%; justify-content: center;">
+                            View All
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Leads Section -->
+            <section id="leads" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">Leads</h1>
+                    <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+                        <button class="btn btn-primary btn-large" onclick="openLeadModal()">
+                            <span>+</span> Add Lead
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <select id="status-filter" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="New">New</option>
+                        <option value="Contacted">Contacted</option>
+                        <option value="Qualified">Qualified</option>
+                        <option value="Proposal">Proposal</option>
+                        <option value="Negotiation">Negotiation</option>
+                        <option value="Won">Won</option>
+                        <option value="Lost">Lost</option>
+                    </select>
+                    <select id="source-filter" class="filter-select">
+                        <option value="">All Sources</option>
+                        <option value="website">Website</option>
+                        <option value="referral">Referral</option>
+                        <option value="walk-in">Walk-in</option>
+                        <option value="phone">Phone</option>
+                        <option value="social-media">Social Media</option>
+                    </select>
+                    <select id="assigned-filter" class="filter-select">
+                        <option value="">All Users</option>
+                    </select>
+                    <input type="text" id="lead-search" class="search-input" placeholder="Search by name, email, phone...">
+                    <a href="#" class="clear-filters" onclick="clearFilters()">Clear Filters</a>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 180px; text-align: left;">Name</th>
+                                    <th style="width: 200px; text-align: left;">Contact</th>
+                                    <th style="width: 120px; text-align: left;">Source</th>
+                                    <th style="width: 120px; text-align: left;">Status</th>
+                                    <th style="width: 120px; text-align: right; cursor: pointer;" onclick="sortLeads('value')">Value (KSH) <span class="sort-indicator" id="value-sort-indicator">↓</span></th>
+                                    <th style="width: 150px; text-align: left;">Assigned To</th>
+                                    <th style="width: 130px; text-align: left;">Last Contact</th>
+                                    <th style="width: 120px; text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leads-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <div class="pagination-info">
+                            <span>Rows per page:</span>
+                            <select class="rows-per-page">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="btn btn-secondary btn-sm">Previous</button>
+                            <div class="page-numbers">
+                                <span class="page-number active">1</span>
+                            </div>
+                            <button class="btn btn-secondary btn-sm">Next</button>
+                        </div>
+                        <div class="pagination-total">
+                            <span id="total-leads-count">0</span> leads
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pipeline Section -->
+            <section id="pipeline" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">Sales Pipeline</h1>
+                </div>
+                <div class="pipeline-board">
+                    <div class="pipeline-column" data-stage="New">
+                        <div class="column-header">
+                            <h3>New</h3>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-leads" id="stage-new"></div>
+                    </div>
+                    <div class="pipeline-column" data-stage="Contacted">
+                        <div class="column-header">
+                            <h3>Contacted</h3>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-leads" id="stage-contacted"></div>
+                    </div>
+                    <div class="pipeline-column" data-stage="Qualified">
+                        <div class="column-header">
+                            <h3>Qualified</h3>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-leads" id="stage-qualified"></div>
+                    </div>
+                    <div class="pipeline-column" data-stage="Proposal">
+                        <div class="column-header">
+                            <h3>Proposal</h3>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-leads" id="stage-proposal"></div>
+                    </div>
+                    <div class="pipeline-column" data-stage="Negotiation">
+                        <div class="column-header">
+                            <h3>Negotiation</h3>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-leads" id="stage-negotiation"></div>
+                    </div>
+                    <div class="pipeline-column won-column" data-stage="Won">
+                        <div class="column-header">
+                            <h3>Won</h3>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-leads" id="stage-won"></div>
+                    </div>
+                    <div class="pipeline-column lost-column" data-stage="Lost">
+                        <div class="column-header">
+                            <h3>Lost</h3>
+                            <span class="column-count">0</span>
+                        </div>
+                        <div class="column-leads" id="stage-lost"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tasks Section -->
+            <section id="tasks" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">Follow-ups & Tasks</h1>
+                    <button class="btn btn-primary btn-large" onclick="openTaskModal()">
+                        <span>+</span> New Task
+                    </button>
+                </div>
+
+
+                <div id="task-list-view" class="task-view">
+                    <div class="filter-bar">
+                        <select id="task-status-filter" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Overdue">Overdue</option>
+                        </select>
+                        <select id="task-priority-filter" class="filter-select">
+                            <option value="">All Priorities</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                        <select id="task-assigned-filter" class="filter-select">
+                            <option value="">All Users</option>
+                        </select>
+                    </div>
+
+                    <div class="overdue-section" id="overdue-section" style="display: none;">
+                        <div class="overdue-alert">
+                            <span class="alert-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+                            <span id="overdue-count">0</span> overdue tasks
+                        </div>
+                    </div>
+
+                    <div class="task-groups" id="task-groups"></div>
+                </div>
+            </section>
+
+            <!-- Contacts/Communications Section -->
+            <section id="contacts" class="content-section">
+                <div class="communications-layout">
+                    <div class="communications-list-panel">
+                        <input type="text" id="contact-search" class="search-input" placeholder="Search contacts...">
+                        <div id="contacts-list-container" class="contacts-list"></div>
+                    </div>
+                    <div class="communications-detail-panel">
+                        <div class="empty-state" id="communication-empty">
+                            <p>Select a contact to view communication history</p>
+                        </div>
+                        <div id="communication-detail" class="hidden"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">Reports</h1>
+                    <div class="header-actions">
+                        <div class="date-range-selector">
+                            <input type="date" id="report-start-date" class="date-input">
+                            <span>to</span>
+                            <input type="date" id="report-end-date" class="date-input">
+                        </div>
+                        <div class="export-dropdown">
+                            <button class="btn btn-secondary" onclick="exportReport('pdf')">Export</button>
+                            <div class="dropdown-menu">
+                                <a href="#" onclick="exportReport('pdf')">PDF</a>
+                                <a href="#" onclick="exportReport('csv')">CSV</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reports-grid">
+                    <div class="report-card">
+                        <h3 class="report-title">Conversion Funnel</h3>
+                        <div id="funnel-chart" class="report-content"></div>
+                    </div>
+                    <div class="report-card">
+                        <h3 class="report-title">Lead Source Performance</h3>
+                        <div id="source-performance" class="report-content"></div>
+                    </div>
+                    <div class="report-card">
+                        <h3 class="report-title">Sales Activity</h3>
+                        <div id="sales-activity" class="report-content"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Test Drives Section -->
+            <section id="testdrives" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">Test Drives</h1>
+                    <button class="btn btn-primary btn-large" onclick="openTestDriveModal()">
+                        <span>+</span> Schedule Test Drive
+                    </button>
+                </div>
+
+                <div class="filter-bar">
+                    <select id="testdrive-status-filter" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                    <input type="date" id="testdrive-date-from" class="filter-input" placeholder="From Date">
+                    <input type="date" id="testdrive-date-to" class="filter-input" placeholder="To Date">
+                    <button class="btn btn-secondary" onclick="filterTestDrives()">Filter</button>
+                    <button class="btn btn-link" onclick="clearTestDriveFilters()">Clear</button>
+                </div>
+
+                <div class="table-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Lead Name</th>
+                                <th>Vehicle</th>
+                                <th>Date/Time</th>
+                                <th>Status</th>
+                                <th>Sales Rep</th>
+                                <th style="width: 140px; min-width: 140px; text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="testdrives-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="inventory" class="content-section">
+                <div class="page-header">
+                    <h1 class="page-title">Vehicle Inventory</h1>
+                    <button class="btn btn-primary btn-large" onclick="openVehicleModal()">
+                        <span>+</span> Add Vehicle
+                    </button>
+                </div>
+
+                <div class="table-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Make/Model</th>
+                                <th>Year</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Stock#</th>
+                                <th style="width: 140px; min-width: 140px; text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Users/Settings Section -->
+            <section id="users" class="content-section">
+                <div class="settings-layout">
+                    <div class="settings-sidebar">
+                        <a href="#" class="settings-nav-item active" data-tab="profile">Profile</a>
+                        <a href="#" class="settings-nav-item" data-tab="team">Team & Users</a>
+                        <a href="#" class="settings-nav-item" data-tab="targets">Targets</a>
+                    </div>
+                    <div class="settings-content">
+                        <div id="profile-tab" class="settings-tab active">
+                            <h2 class="settings-tab-title">Profile</h2>
+                            <div class="profile-form">
+                                <div class="avatar-upload">
+                                    <div class="avatar-preview">AU</div>
+                                    <button class="avatar-upload-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+                                </div>
+                                <div class="form-group">
+                                    <label>Name</label>
+                                    <input type="text" id="profile-name" value="Admin User">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="profile-email" value="admin@crm.com" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone</label>
+                                    <input type="tel" id="profile-phone">
+                                </div>
+                                <button class="btn btn-secondary" onclick="changePassword()">Change Password</button>
+                                <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+                            </div>
+                        </div>
+
+                        <div id="team-tab" class="settings-tab">
+                            <div class="settings-tab-header">
+                                <h2 class="settings-tab-title">Team & Users</h2>
+                                <button class="btn btn-primary" onclick="openUserModal()">+ Invite User</button>
+                            </div>
+                            <div class="table-card">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-table-body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="targets-tab" class="settings-tab">
+                            <div class="settings-tab-header">
+                                <h2 class="settings-tab-title">Sales Targets</h2>
+                                <button class="btn btn-primary" onclick="openTargetModal()">+ Add Target</button>
+                            </div>
+                            <div class="targets-controls" style="margin-bottom: var(--spacing-lg);">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Period Type</label>
+                                        <select id="target-period-type" onchange="loadTargets()">
+                                            <option value="monthly">Monthly</option>
+                                            <option value="quarterly">Quarterly</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Period</label>
+                                        <select id="target-period-selector" onchange="loadTargets()">
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-card">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Sales Rep</th>
+                                            <th>Target</th>
+                                            <th>Actual</th>
+                                            <th>Progress</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="targets-table-body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Lead Modal -->
+    <div id="lead-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="lead-modal-title">Add New Lead</h2>
+                <button class="close-btn" onclick="closeModal('lead-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="lead-form">
+                    <input type="hidden" id="lead-id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name <span class="required">*</span></label>
+                            <input type="text" id="lead-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email <span class="required">*</span></label>
+                            <input type="email" id="lead-email" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Phone <span class="required">*</span></label>
+                            <input type="tel" id="lead-phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Company</label>
+                            <input type="text" id="lead-company">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Job Title</label>
+                            <input type="text" id="lead-job-title">
+                        </div>
+                        <div class="form-group">
+                            <label>Source <span class="required">*</span></label>
+                            <select id="lead-source" required>
+                                <option value="">Select Source</option>
+                                <option value="website">Website</option>
+                                <option value="referral">Referral</option>
+                                <option value="walk-in">Walk-in</option>
+                                <option value="phone">Phone Inquiry</option>
+                                <option value="social-media">Social Media</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Status <span class="required">*</span></label>
+                            <select id="lead-status" required>
+                                <option value="New">New</option>
+                                <option value="Contacted">Contacted</option>
+                                <option value="Qualified">Qualified</option>
+                                <option value="Proposal">Proposal</option>
+                                <option value="Negotiation">Negotiation</option>
+                                <option value="Won">Won</option>
+                                <option value="Lost">Lost</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Estimated Value</label>
+                            <input type="number" id="lead-value" min="0" step="0.01" placeholder="KSh 0.00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Assigned To <span class="required">*</span></label>
+                            <select id="lead-assigned" required>
+                                <option value="">Select User</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Expected Close Date</label>
+                            <input type="date" id="lead-close-date">
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <h4 class="section-title">Automotive Specific</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Vehicle of Interest</label>
+                                <select id="lead-vehicle-interest">
+                                    <option value="">Select Vehicle</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Trade-In</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="trade-in" value="no" checked> No
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="trade-in" value="yes"> Yes
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Purchase Timeline</label>
+                            <select id="lead-timeline">
+                                <option value="">Not Specified</option>
+                                <option value="immediate">Immediate</option>
+                                <option value="1-3 months">1-3 months</option>
+                                <option value="3-6 months">3-6 months</option>
+                                <option value="6+ months">6+ months</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="lead-notes" rows="4"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('lead-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveLead()">Save Lead</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Drive Modal -->
+    <div id="test-drive-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="test-drive-modal-title">Schedule Test Drive</h2>
+                <button class="close-btn" onclick="closeModal('test-drive-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="test-drive-form">
+                    <input type="hidden" id="test-drive-id">
+                    <div class="form-group">
+                        <label>Lead <span class="required">*</span></label>
+                        <select id="test-drive-lead" required>
+                            <option value="">Select Lead</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle of Interest</label>
+                        <input type="text" id="test-drive-vehicle" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Test Drive Date/Time <span class="required">*</span></label>
+                        <input type="datetime-local" id="test-drive-datetime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Sales Rep Assigned</label>
+                        <select id="test-drive-salesrep">
+                            <option value="">Select Sales Rep</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="test-drive-status">
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="test-drive-notes" rows="4"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('test-drive-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTestDrive()">Save Test Drive</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle Modal -->
+    <div id="vehicle-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="vehicle-modal-title">Add Vehicle</h2>
+                <button class="close-btn" onclick="closeModal('vehicle-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="vehicle-form">
+                    <input type="hidden" id="vehicle-id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Make <span class="required">*</span></label>
+                            <input type="text" id="vehicle-make" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Model <span class="required">*</span></label>
+                            <input type="text" id="vehicle-model" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Year <span class="required">*</span></label>
+                            <input type="number" id="vehicle-year" min="1900" max="2100" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Color</label>
+                            <input type="text" id="vehicle-color">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>VIN</label>
+                            <input type="text" id="vehicle-vin">
+                        </div>
+                        <div class="form-group">
+                            <label>Stock#</label>
+                            <input type="text" id="vehicle-stock">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Price (KSh) <span class="required">*</span></label>
+                            <input type="number" id="vehicle-price" min="0" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cost (KSh)</label>
+                            <input type="number" id="vehicle-cost" min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Status <span class="required">*</span></label>
+                        <select id="vehicle-status" required>
+                            <option value="Available">Available</option>
+                            <option value="Sold">Sold</option>
+                            <option value="Reserved">Reserved</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Features</label>
+                        <textarea id="vehicle-features" rows="4" placeholder="Enter vehicle features, options, etc."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Images</label>
+                        <input type="file" id="vehicle-images" multiple accept="image/*" disabled>
+                        <small style="color: #8d99ae;">File upload functionality coming soon</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('vehicle-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveVehicle()">Save Vehicle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lead Detail Panel -->
+    <div id="lead-detail-panel" class="slide-out-panel">
+        <div class="panel-header">
+            <div class="panel-header-content">
+                <h2 id="panel-lead-name">Lead Name</h2>
+                <span id="panel-lead-status" class="status-badge-large"></span>
+            </div>
+            <button class="close-btn" onclick="closeLeadDetail()" aria-label="Close">×</button>
+        </div>
+        <div class="panel-content" id="lead-detail-content"></div>
+        <div class="panel-footer">
+            <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+                <button class="btn btn-danger" onclick="deleteLeadFromPanel()">Delete Lead</button>
+                <div class="reassign-dropdown" style="position: relative;">
+                    <button class="btn btn-secondary" onclick="toggleReassignDropdown(event)" id="reassign-btn">
+                        Reassign <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div class="reassign-dropdown-menu" id="reassign-dropdown-menu" style="display: none;">
+                        <div class="reassign-dropdown-header">Select Sales Rep</div>
+                        <div id="reassign-dropdown-options"></div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveLeadChanges()">Save Changes</button>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="task-modal-title">Add New Task</h2>
+                <button class="close-btn" onclick="closeModal('task-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="task-form">
+                    <input type="hidden" id="task-id">
+                    <div class="form-group">
+                        <label>Task Title <span class="required">*</span></label>
+                        <input type="text" id="task-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Related Lead <span class="required">*</span></label>
+                        <select id="task-lead" required>
+                            <option value="">Select Lead</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Due Date <span class="required">*</span></label>
+                            <input type="datetime-local" id="task-due-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Priority <span class="required">*</span></label>
+                            <select id="task-priority" required>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Assigned To</label>
+                        <select id="task-assigned">
+                            <option value="">Unassigned</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="task-description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('task-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="user-modal-title">Add New User</h2>
+                <button class="close-btn" onclick="closeModal('user-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="user-form">
+                    <input type="hidden" id="user-id">
+                    <div class="form-group">
+                        <label>Name <span class="required">*</span></label>
+                        <input type="text" id="user-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email <span class="required">*</span></label>
+                        <input type="email" id="user-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Role <span class="required">*</span></label>
+                        <select id="user-role" required>
+                            <option value="Sales Rep">Sales Rep</option>
+                            <option value="Sales Manager">Sales Manager</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="user-password" placeholder="Leave blank to keep current">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('user-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Communication Modal -->
+    <div id="communication-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Log Communication</h2>
+                <button class="close-btn" onclick="closeModal('communication-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="communication-form">
+                    <input type="hidden" id="comm-lead-id">
+                    <div class="form-group">
+                        <label>Type <span class="required">*</span></label>
+                        <select id="comm-type" required>
+                            <option value="call">Call</option>
+                            <option value="email">Email</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="note">Note</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <input type="text" id="comm-subject">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes <span class="required">*</span></label>
+                        <textarea id="comm-notes" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Outcome</label>
+                        <select id="comm-outcome">
+                            <option value="">Select Outcome</option>
+                            <option value="positive">Positive</option>
+                            <option value="neutral">Neutral</option>
+                            <option value="negative">Negative</option>
+                            <option value="follow-up">Follow-up Required</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('communication-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCommunication()">Log Communication</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reassign Leads Modal -->
+    <div id="reassign-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reassign Selected Leads</h2>
+                <button class="close-btn" onclick="closeModal('reassign-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="reassign-form">
+                    <div class="form-group">
+                        <label>Selected Leads</label>
+                        <div id="selected-leads-list" style="max-height: 150px; overflow-y: auto; padding: var(--spacing-md); background: var(--light-gray); border-radius: 6px; margin-bottom: var(--spacing-md);"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Reassign to <span class="required">*</span></label>
+                        <select id="reassign-to" required>
+                            <option value="">Select User</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Reason (Optional)</label>
+                        <textarea id="reassign-reason" rows="3" placeholder="Enter reason for reassignment..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('reassign-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmReassignment()">Confirm Reassignment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Target Modal -->
+    <div id="target-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="target-modal-title">Add Sales Target</h2>
+                <button class="close-btn" onclick="closeModal('target-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="target-form">
+                    <input type="hidden" id="target-id">
+                    <div class="form-group">
+                        <label>Sales Rep <span class="required">*</span></label>
+                        <select id="target-salesrep" required>
+                            <option value="">Select Sales Rep</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Period Type <span class="required">*</span></label>
+                        <select id="target-period-type-input" required>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Target Amount (KSh) <span class="required">*</span></label>
+                        <input type="number" id="target-amount" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Start Date <span class="required">*</span></label>
+                        <input type="date" id="target-start-date" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('target-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTarget()">Save Target</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import CSV Modal -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Leads from CSV</h2>
+                <button class="close-btn" onclick="closeModal('import-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select CSV File</label>
+                    <input type="file" id="csv-file" accept=".csv" onchange="handleCSVImport(event)">
+                </div>
+                <div class="form-group">
+                    <label>CSV Format:</label>
+                    <p class="help-text">Expected columns: Name, Email, Phone, Source, Status, Value (optional)</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('import-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
