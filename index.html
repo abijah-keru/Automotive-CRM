@@ -380,19 +380,16 @@
                     <div class="pagination">
                         <div class="pagination-info">
                             <span>Rows per page:</span>
-                            <select class="rows-per-page">
-                                <option value="10">10</option>
-                                <option value="25" selected>25</option>
+                            <select class="rows-per-page" id="rows-per-page">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
                                 <option value="50">50</option>
-                                <option value="100">100</option>
                             </select>
                         </div>
                         <div class="pagination-controls">
-                            <button class="btn btn-secondary btn-sm">Previous</button>
-                            <div class="page-numbers">
-                                <span class="page-number active">1</span>
-                            </div>
-                            <button class="btn btn-secondary btn-sm">Next</button>
+                            <button class="btn btn-secondary btn-sm" id="prev-page-btn">Previous</button>
+                            <div class="page-numbers" id="page-numbers"></div>
+                            <button class="btn btn-secondary btn-sm" id="next-page-btn">Next</button>
                         </div>
                         <div class="pagination-total">
                             <span id="total-leads-count">0</span> leads

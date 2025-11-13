@@ -1281,7 +1281,7 @@ function initializeApp() {
     // Step 6: Update all views based on role (but dashboard is already updated by showSection)
     loadLeads();
     loadTasks();
-    loadCommunications();
+    loadContacts(); // Load communications/contacts
     
     // Load test drives and vehicles
     testDrives = JSON.parse(localStorage.getItem('crm_testdrives')) || [];
@@ -1375,20 +1375,48 @@ function setupSidebarToggle() {
     const body = document.body;
     
     if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const isCollapsed = sidebar.classList.toggle('collapsed');
-            
-            // Add class to body for CSS targeting
-            if (isCollapsed) {
+        // Load saved state on page load (only for desktop)
+        const isMobile = window.innerWidth <= 767;
+        if (!isMobile) {
+            const savedState = localStorage.getItem('sidebarCollapsed');
+            if (savedState === 'true') {
+                sidebar.classList.add('collapsed');
                 body.classList.add('sidebar-collapsed');
-            } else {
-                body.classList.remove('sidebar-collapsed');
+            }
+        }
+        
+        // Toggle function
+        const toggleSidebar = function(e) {
+            if (e) {
+                e.stopPropagation();
             }
             
-            // Save state to localStorage
-            localStorage.setItem('sidebarCollapsed', isCollapsed);
-        });
+            const isMobile = window.innerWidth <= 767;
+            
+            if (isMobile) {
+                // On mobile, toggle open/close (slide in/out)
+                sidebar.classList.toggle('open');
+                const overlay = document.getElementById('sidebar-overlay');
+                if (overlay) {
+                    overlay.classList.toggle('active');
+                }
+            } else {
+                // On desktop, toggle collapsed/expanded
+                const isCollapsed = sidebar.classList.toggle('collapsed');
+                
+                // Add class to body for CSS targeting
+                if (isCollapsed) {
+                    body.classList.add('sidebar-collapsed');
+                } else {
+                    body.classList.remove('sidebar-collapsed');
+                }
+                
+                // Save state to localStorage
+                localStorage.setItem('sidebarCollapsed', isCollapsed);
+            }
+        };
+        
+        sidebarToggle.addEventListener('click', toggleSidebar);
         
         // Also allow clicking on the sidebar edge area (but not on nav items)
         sidebar.addEventListener('click', function(e) {
@@ -1401,24 +1429,43 @@ function setupSidebarToggle() {
             if (!e.target.closest('.nav-item') && !e.target.closest('.sidebar-nav')) {
                 const rect = sidebar.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
-                if (clickX >= rect.width - 8) {
-                    const isCollapsed = sidebar.classList.toggle('collapsed');
-                    if (isCollapsed) {
-                        body.classList.add('sidebar-collapsed');
-                    } else {
-                        body.classList.remove('sidebar-collapsed');
-                    }
-                    localStorage.setItem('sidebarCollapsed', isCollapsed);
+                const sidebarWidth = rect.width;
+                
+                // If clicking within 16px of the right edge
+                if (clickX >= sidebarWidth - 16) {
+                    toggleSidebar(e);
                 }
             }
         });
         
-        // Restore sidebar state from localStorage
-        const savedState = localStorage.getItem('sidebarCollapsed');
-        if (savedState === 'true') {
-            sidebar.classList.add('collapsed');
-            body.classList.add('sidebar-collapsed');
-        }
+        // Handle window resize
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                const isMobile = window.innerWidth <= 767;
+                
+                if (isMobile) {
+                    // On mobile, ensure sidebar is closed by default
+                    sidebar.classList.remove('collapsed', 'open');
+                    body.classList.remove('sidebar-collapsed');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    if (overlay) {
+                        overlay.classList.remove('active');
+                    }
+                } else {
+                    // On desktop, restore saved state
+                    const savedState = localStorage.getItem('sidebarCollapsed');
+                    if (savedState === 'true') {
+                        sidebar.classList.add('collapsed');
+                        body.classList.add('sidebar-collapsed');
+                    } else {
+                        sidebar.classList.remove('collapsed');
+                        body.classList.remove('sidebar-collapsed');
+                    }
+                }
+            }, 100);
+        });
     }
 }
 
@@ -1635,7 +1682,7 @@ function switchUser(userId) {
     filterTasks();
     
     // Load communications
-    loadCommunications();
+    loadContacts(); // Load communications/contacts
     
     // Update pipeline with filtered data
     updatePipeline();
@@ -2183,6 +2230,41 @@ function setupEventListeners() {
         });
     }
     
+    // Pagination controls
+    const rowsPerPageSelect = document.getElementById('rows-per-page');
+    if (rowsPerPageSelect) {
+        // Load saved preference
+        const savedRowsPerPage = localStorage.getItem('rowsPerPage');
+        if (savedRowsPerPage) {
+            rowsPerPage = parseInt(savedRowsPerPage);
+            rowsPerPageSelect.value = rowsPerPage;
+        }
+        
+        rowsPerPageSelect.addEventListener('change', function(e) {
+            changeRowsPerPage(e.target.value);
+        });
+    }
+    
+    const prevPageBtn = document.getElementById('prev-page-btn');
+    if (prevPageBtn) {
+        prevPageBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                goToPage(currentPage - 1);
+            }
+        });
+    }
+    
+    const nextPageBtn = document.getElementById('next-page-btn');
+    if (nextPageBtn) {
+        nextPageBtn.addEventListener('click', function() {
+            const totalLeads = getFilteredLeads().length;
+            const totalPages = Math.ceil(totalLeads / rowsPerPage);
+            if (currentPage < totalPages) {
+                goToPage(currentPage + 1);
+            }
+        });
+    }
+    
     // Close modals on escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
@@ -2432,6 +2514,13 @@ function filterLeads() {
         return matchesSearch && matchesStatus && matchesSource && matchesAssigned;
     });
     
+    // Reset to page 1 when filtering (unless we're just changing pages)
+    // Check if this is a filter change by comparing with previous filter state
+    const totalPages = Math.ceil(filtered.length / rowsPerPage);
+    if (currentPage > totalPages && totalPages > 0) {
+        currentPage = 1;
+    }
+    
     displayLeads(filtered);
 }
 
@@ -2478,15 +2567,30 @@ function displayLeads(leadsToShow) {
         table.style.tableLayout = 'fixed';
     }
     
+    // Calculate pagination
+    const totalLeads = leadsToShow.length;
+    const totalPages = Math.ceil(totalLeads / rowsPerPage);
+    
+    // Reset to page 1 if current page is beyond available pages
+    if (currentPage > totalPages && totalPages > 0) {
+        currentPage = 1;
+    }
+    
+    // Get paginated leads
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginatedLeads = leadsToShow.slice(startIndex, endIndex);
+    
     tbody.innerHTML = '';
     
-    if (leadsToShow.length === 0) {
+    if (paginatedLeads.length === 0) {
         const colspan = isSalesRep ? 7 : 8;
         tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center">No leads found</td></tr>`;
+        updatePaginationControls(totalLeads, totalPages);
         return;
     }
     
-    leadsToShow.forEach(lead => {
+    paginatedLeads.forEach(lead => {
         const assignedUser = users.find(u => u.id === lead.assignedTo);
         const lastComm = communications.filter(c => c.leadId === lead.id).sort((a, b) => 
             new Date(b.createdAt) - new Date(a.createdAt))[0];
@@ -2531,11 +2635,14 @@ function displayLeads(leadsToShow) {
         tbody.appendChild(row);
     });
     
-    // Update total count
+    // Update total count (show total, not paginated count)
     const totalCountEl = document.getElementById('total-leads-count');
     if (totalCountEl) {
-        totalCountEl.textContent = leadsToShow.length;
+        totalCountEl.textContent = totalLeads;
     }
+    
+    // Update pagination controls
+    updatePaginationControls(totalLeads, totalPages);
     
     // Force a browser reflow to ensure table updates are rendered immediately
     // Reading layout properties forces the browser to calculate layout and render changes
@@ -2555,7 +2662,13 @@ function displayLeads(leadsToShow) {
 let leadsSortColumn = null;
 let leadsSortDirection = 'asc';
 
+// Pagination state
+let currentPage = 1;
+let rowsPerPage = 10; // Default to 10 rows per page
+
 function sortLeads(column) {
+    // Reset to page 1 when sorting
+    currentPage = 1;
     // Only allow sorting by value column
     if (column !== 'value') {
         return;
@@ -2634,6 +2747,102 @@ function sortLeads(column) {
             }
         });
     });
+}
+
+function updatePaginationControls(totalLeads, totalPages) {
+    const prevBtn = document.getElementById('prev-page-btn');
+    const nextBtn = document.getElementById('next-page-btn');
+    const pageNumbers = document.getElementById('page-numbers');
+    
+    // Update Previous button
+    if (prevBtn) {
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.style.opacity = currentPage === 1 ? '0.5' : '1';
+        prevBtn.style.cursor = currentPage === 1 ? 'not-allowed' : 'pointer';
+    }
+    
+    // Update Next button
+    if (nextBtn) {
+        nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+        nextBtn.style.opacity = (currentPage === totalPages || totalPages === 0) ? '0.5' : '1';
+        nextBtn.style.cursor = (currentPage === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer';
+    }
+    
+    // Update page numbers
+    if (pageNumbers) {
+        pageNumbers.innerHTML = '';
+        
+        if (totalPages === 0) {
+            pageNumbers.innerHTML = '<span class="page-number active">0</span>';
+            return;
+        }
+        
+        // Show up to 5 page numbers
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        // Adjust start if we're near the end
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+        
+        // Add first page and ellipsis if needed
+        if (startPage > 1) {
+            const firstPage = document.createElement('span');
+            firstPage.className = 'page-number';
+            firstPage.textContent = '1';
+            firstPage.onclick = () => goToPage(1);
+            pageNumbers.appendChild(firstPage);
+            
+            if (startPage > 2) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'page-ellipsis';
+                ellipsis.textContent = '...';
+                pageNumbers.appendChild(ellipsis);
+            }
+        }
+        
+        // Add page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            const pageNum = document.createElement('span');
+            pageNum.className = 'page-number';
+            if (i === currentPage) {
+                pageNum.classList.add('active');
+            }
+            pageNum.textContent = i;
+            pageNum.onclick = () => goToPage(i);
+            pageNumbers.appendChild(pageNum);
+        }
+        
+        // Add last page and ellipsis if needed
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'page-ellipsis';
+                ellipsis.textContent = '...';
+                pageNumbers.appendChild(ellipsis);
+            }
+            
+            const lastPage = document.createElement('span');
+            lastPage.className = 'page-number';
+            lastPage.textContent = totalPages;
+            lastPage.onclick = () => goToPage(totalPages);
+            pageNumbers.appendChild(lastPage);
+        }
+    }
+}
+
+function goToPage(page) {
+    currentPage = page;
+    filterLeads(); // This will call displayLeads with updated pagination
+}
+
+function changeRowsPerPage(newRowsPerPage) {
+    rowsPerPage = parseInt(newRowsPerPage);
+    currentPage = 1; // Reset to first page when changing rows per page
+    // Save preference to localStorage
+    localStorage.setItem('rowsPerPage', rowsPerPage.toString());
+    filterLeads(); // Refresh the display
 }
 
 function openLeadModal(leadId = null) {
