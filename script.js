@@ -1286,6 +1286,10 @@ function initializeApp() {
     // Load test drives and vehicles
     testDrives = JSON.parse(localStorage.getItem('crm_testdrives')) || [];
     vehicles = JSON.parse(localStorage.getItem('crm_vehicles')) || [];
+    
+    // Ensure at least one test drive exists for a customer
+    ensureTestDriveExists();
+    
     loadTestDrives();
     loadVehicles();
     updateVehicleDropdowns();
@@ -4900,9 +4904,12 @@ function updatePipelineChart() {
     
     // Admin Dashboard charts use ALL leads (not filtered)
     const allLeads = leads;
-    const stages = ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
-    const stageCounts = stages.map(stage => allLeads.filter(l => l.status === stage).length);
-    const maxCount = Math.max(...stageCounts, 1);
+    const activeStages = ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation'];
+    const endStages = ['Won', 'Lost'];
+    
+    const activeStageCounts = activeStages.map(stage => allLeads.filter(l => l.status === stage).length);
+    const endStageCounts = endStages.map(stage => allLeads.filter(l => l.status === stage).length);
+    const maxCount = Math.max(...activeStageCounts, ...endStageCounts, 1);
     const chartHeight = 200;
     
     container.innerHTML = '';
@@ -4913,8 +4920,17 @@ function updatePipelineChart() {
     container.style.height = chartHeight + 60 + 'px';
     container.style.padding = '20px 0';
     
-    stages.forEach((stage, index) => {
-        const count = stageCounts[index];
+    // Add a separator element between active stages and end states
+    const separator = document.createElement('div');
+    separator.style.width = '2px';
+    separator.style.height = chartHeight + 40 + 'px';
+    separator.style.background = '#e0e0e0';
+    separator.style.margin = '0 8px';
+    separator.style.flexShrink = '0';
+    
+    // Render active stages
+    activeStages.forEach((stage, index) => {
+        const count = activeStageCounts[index];
         const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
         const barHeight = (percentage / 100) * chartHeight;
         
@@ -4931,6 +4947,36 @@ function updatePipelineChart() {
                     <div style="width: 100%; height: ${barHeight}px; background: #014f86; border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: ${count > 0 ? '4px' : '0'};"></div>
                 </div>
                 <div style="font-size: 11px; color: #8d99ae; margin-top: 8px; text-align: center; font-weight: 500;">${stage}</div>
+            </div>
+        `;
+        container.appendChild(column);
+    });
+    
+    // Add separator
+    container.appendChild(separator);
+    
+    // Render end states (Won and Lost) with different styling
+    endStages.forEach((stage, index) => {
+        const count = endStageCounts[index];
+        const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+        const barHeight = (percentage / 100) * chartHeight;
+        const isWon = stage === 'Won';
+        const barColor = isWon ? '#06d6a0' : '#ef476f';
+        const textColor = isWon ? '#06d6a0' : '#ef476f';
+        
+        const column = document.createElement('div');
+        column.style.display = 'flex';
+        column.style.flexDirection = 'column';
+        column.style.alignItems = 'center';
+        column.style.flex = '1';
+        column.style.maxWidth = '80px';
+        column.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <div style="font-size: 12px; font-weight: 600; color: ${textColor}; margin-bottom: 8px; text-align: center; min-height: 32px; display: flex; align-items: center; justify-content: center;">${count}</div>
+                <div style="width: 100%; height: ${chartHeight}px; background: #edf2f4; border-radius: 4px 4px 0 0; position: relative; display: flex; align-items: flex-end;">
+                    <div style="width: 100%; height: ${barHeight}px; background: ${barColor}; border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: ${count > 0 ? '4px' : '0'};"></div>
+                </div>
+                <div style="font-size: 11px; color: ${textColor}; margin-top: 8px; text-align: center; font-weight: 600;">${stage}</div>
             </div>
         `;
         container.appendChild(column);
@@ -5366,6 +5412,47 @@ function saveTestDrive() {
     showToast('Test drive saved successfully', 'success');
 }
 
+function ensureTestDriveExists() {
+    // Check if there are any test drives
+    if (testDrives.length === 0 && leads.length > 0) {
+        // Find the first lead that doesn't have a test drive
+        const leadWithoutTestDrive = leads.find(lead => {
+            return !testDrives.some(td => td.leadId === lead.id);
+        });
+        
+        if (leadWithoutTestDrive) {
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(14, 0, 0, 0); // 2:00 PM tomorrow
+            
+            // Get a vehicle if available, or use a default
+            const availableVehicle = vehicles.length > 0 
+                ? `${vehicles[0].make} ${vehicles[0].model} ${vehicles[0].year}`
+                : 'Toyota Land Cruiser Prado 2023';
+            
+            // Get sales rep ID (prefer Jesse Pinkman, fallback to first sales rep, then current user)
+            const jesse = users.find(u => u.name === 'Jesse Pinkman' && u.role === 'Sales Rep');
+            const salesRepId = jesse ? jesse.id : (users.find(u => u.role === 'Sales Rep')?.id || currentUserId);
+            
+            const newTestDrive = {
+                id: 1,
+                leadId: leadWithoutTestDrive.id,
+                vehicle: availableVehicle,
+                datetime: tomorrow.toISOString(),
+                salesRepId: salesRepId,
+                status: 'Scheduled',
+                notes: `Test drive scheduled for ${leadWithoutTestDrive.name}. Customer interested in viewing and test driving the vehicle.`,
+                createdAt: now.toISOString(),
+                updatedAt: now.toISOString()
+            };
+            
+            testDrives.push(newTestDrive);
+            saveTestDrives();
+        }
+    }
+}
+
 function loadTestDrives() {
     const tbody = document.getElementById('testdrives-table-body');
     if (!tbody) return;
@@ -5770,7 +5857,7 @@ function updateTeamPerformance() {
         const isTopPerformer = data.rank === 1;
         const rowClass = isTopPerformer ? 'top-performer' : '';
         html += `<tr class="${rowClass}">`;
-        html += `<td>${isTopPerformer ? '<span class="trophy-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg></span> ' : ''}${data.repName} <span style="color: #8d99ae; font-size: 12px; font-weight: 500;">(#${data.rank})</span></td>`;
+        html += `<td>${isTopPerformer ? '<span class="trophy-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg></span> ' : ''}${data.repName}</td>`;
         html += `<td>${data.leadsAssigned}</td>`;
         html += `<td>${data.leadsContactedPercent}%</td>`;
         html += `<td>${data.dealsWon}</td>`;
